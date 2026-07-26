@@ -1,0 +1,10 @@
+CREATE TYPE "ProcessingStatus" AS ENUM ('PENDING', 'PROCESSED', 'WAITING_TRANSLATION', 'FAILED');
+ALTER TABLE "RawDocument" ADD COLUMN "cleanedContent" TEXT;
+ALTER TABLE "RawDocument" ADD COLUMN "topic" TEXT;
+ALTER TABLE "RawDocument" ADD COLUMN "processingStatus" "ProcessingStatus" NOT NULL DEFAULT 'PENDING';
+ALTER TABLE "RawDocument" ADD COLUMN "processedAt" TIMESTAMP(3);
+ALTER TABLE "RawDocument" ADD COLUMN "processingError" TEXT;
+ALTER TABLE "Event" ADD COLUMN "clusterKey" TEXT;
+ALTER TABLE "Event" ADD COLUMN "topic" TEXT;
+CREATE UNIQUE INDEX "Event_clusterKey_key" ON "Event"("clusterKey");
+ALTER TABLE "Event" ALTER COLUMN "clusterKey" SET NOT NULL;

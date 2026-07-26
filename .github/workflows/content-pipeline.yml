@@ -1,0 +1,47 @@
+name: Content pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+    - cron: "0 12 * * *"
+    - cron: "0 1 * * 0"
+
+jobs:
+  update-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run sources:ingest
+      - run: npm run content:process
+      - run: npm run content:analyze
+      - run: npm run reviews:auto-resolve
+      - name: Generate scheduled digest
+        shell: bash
+        run: |
+          hour="$(date -u +%H)"
+          weekday="$(date -u +%u)"
+          if [ "$weekday" = "7" ] && [ "$hour" = "01" ]; then npm run digest:weekly && npm run digest:send:weekly;
+          elif [ "$hour" = "00" ]; then npm run digest:morning && npm run digest:send:morning;
+          else npm run digest:evening && npm run digest:send:evening; fi
+        env:
+          TZ: Asia/Shanghai
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      AI_API_URL: ${{ secrets.AI_API_URL }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      ANALYSIS_AI_API_KEY: ${{ secrets.ANALYSIS_AI_API_KEY }}
+      ANALYSIS_AI_API_URL: ${{ secrets.ANALYSIS_AI_API_URL }}
+      ANALYSIS_AI_MODEL: ${{ secrets.ANALYSIS_AI_MODEL }}
+      EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      APP_URL: ${{ secrets.APP_URL }}

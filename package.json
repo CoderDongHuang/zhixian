@@ -1,0 +1,38 @@
+{
+  "name": "ai-industry-research-platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "invite:create": "node --env-file=.env scripts/create-invite.mjs",
+    "sources:ingest": "node --env-file=.env scripts/ingest-sources.mjs"
+    ,"content:process": "node --env-file=.env scripts/process-documents.mjs"
+    ,"content:analyze": "node --env-file=.env scripts/analyze-events.mjs"
+    ,"reviews:auto-resolve": "node --env-file=.env scripts/auto-resolve-reviews.mjs"
+    ,"digest:morning": "node --env-file=.env scripts/generate-digest.mjs MORNING"
+    ,"digest:evening": "node --env-file=.env scripts/generate-digest.mjs EVENING"
+    ,"digest:weekly": "node --env-file=.env scripts/generate-digest.mjs WEEKLY"
+    ,"digest:send:morning": "node --env-file=.env scripts/send-digests.mjs MORNING"
+    ,"digest:send:evening": "node --env-file=.env scripts/send-digests.mjs EVENING"
+    ,"digest:send:weekly": "node --env-file=.env scripts/send-digests.mjs WEEKLY"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "fast-xml-parser": "^5.10.1",
+    "next": "^15.4.0",
+    "pg": "^8.22.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prisma": "^6.12.0",
+    "typescript": "^5.0.0"
+  }
+}

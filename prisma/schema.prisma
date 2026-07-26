@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReviewStatus {
+  AUTO_PUBLISHED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum DocumentLanguage {
+  ZH
+  EN
+  OTHER
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSED
+  WAITING_TRANSLATION
+  FAILED
+}
+
+enum DigestType {
+  MORNING
+  EVENING
+  WEEKLY
+}
+
+enum DeliveryStatus {
+  SENT
+  FAILED
+}
+
+model User {
+  id         String          @id @default(cuid())
+  email      String?         @unique
+  createdAt  DateTime        @default(now())
+  preference UserPreference?
+  bookmarks  Bookmark[]
+  reads      ReadHistory[]
+  feedback   Feedback[]
+  sessions   Session[]
+  digests    Digest[]
+  deliveries EmailDelivery[]
+}
+
+model Invitation {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  email     String?
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  identity        String?
+  skillDirection  String?
+  level           String?
+  topics          String[]
+  readingMinutes  Int?
+  learningGoal    String?
+  morningTime     String?
+  eveningTime     String?
+  timezone        String   @default("Asia/Shanghai")
+  morningEnabled  Boolean  @default(true)
+  eveningEnabled  Boolean  @default(true)
+  weeklyEnabled   Boolean  @default(true)
+  weeklyDay       Int      @default(0)
+  emailEnabled    Boolean  @default(true)
+  itemsPerDigest  Int      @default(10)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Digest {
+  id          String     @id @default(cuid())
+  key         String     @unique
+  userId      String?
+  type        DigestType
+  title       String
+  overview    String
+  content     Json
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime   @default(now())
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  EmailDelivery[]
+
+  @@index([userId, type, createdAt])
+}
+
+model EmailDelivery {
+  id          String         @id @default(cuid())
+  digestId    String
+  userId      String
+  recipient   String
+  status      DeliveryStatus
+  providerId  String?
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+  digest      Digest         @relation(fields: [digestId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([digestId, userId])
+  @@index([status, createdAt])
+}
+
+model Source {
+  id         String           @id @default(cuid())
+  name       String
+  url        String
+  type       String
+  language   DocumentLanguage
+  trustScore Float            @default(0.5)
+  documents  RawDocument[]
+}
+
+model RawDocument {
+  id                String           @id @default(cuid())
+  sourceId          String
+  url               String           @unique
+  title             String
+  content           String?
+  translatedContent String?
+  language          DocumentLanguage
+  publishedAt       DateTime?
+  fetchedAt         DateTime         @default(now())
+  contentHash       String           @unique
+  cleanedContent    String?
+  topic             String?
+  processingStatus  ProcessingStatus @default(PENDING)
+  processedAt       DateTime?
+  processingError   String?
+  source            Source           @relation(fields: [sourceId], references: [id])
+  events            EventDocument[]
+  evidence          Evidence[]
+}
+
+model Event {
+  id         String          @id @default(cuid())
+  title      String
+  clusterKey String          @unique
+  topic      String?
+  type       String
+  importance Float           @default(0.5)
+  createdAt  DateTime        @default(now())
+  documents  EventDocument[]
+  analyses   Analysis[]
+  feedItems  FeedItem[]
+}
+
+model EventDocument {
+  eventId    String
+  documentId String
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  document   RawDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, documentId])
+}
+
+model Analysis {
+  id           String       @id @default(cuid())
+  eventId      String
+  summary      String
+  whyImportant String?
+  impact       String?
+  developerImpact String?
+  learnerAdvice String?
+  advice       String?
+  facts        String?
+  predictions  String?
+  verificationNotes String?
+  confidence   Float
+  status       ReviewStatus @default(PENDING_REVIEW)
+  modelVersion String
+  verifierModel String?
+  promptVersion String @default("day5-v1")
+  analyzedAt   DateTime     @default(now())
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  evidence     Evidence[]
+}
+
+model Evidence {
+  id         String      @id @default(cuid())
+  documentId String
+  analysisId String?
+  quote      String
+  document   RawDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  analysis   Analysis?   @relation(fields: [analysisId], references: [id], onDelete: SetNull)
+}
+
+model FeedItem {
+  id          String        @id @default(cuid())
+  eventId     String
+  publishedAt DateTime      @default(now())
+  rank        Float         @default(0.5)
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bookmarks   Bookmark[]
+  reads       ReadHistory[]
+  feedback    Feedback[]
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feedItemId])
+}
+
+model ReadHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String
+  readAt     DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feedItemId])
+}
+
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String
+  helpful    Boolean?
+  report     String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+}
