@@ -29,6 +29,7 @@ button.secondary { background: transparent; color: #475467; border: 1px solid #c
 .feed-shell, .detail-shell { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 80px; }
 .feed-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; border-bottom: 1px solid #dfe3e8; padding-bottom: 24px; }
 .feed-header > div > p:last-child { color: #667085; }
+.brand-logo { width: 190px; height: auto; margin-bottom: 22px; object-fit: contain; }
 .login-link { color: #176b4d; font-weight: 700; text-decoration: none; }
 .topic-tabs { display: flex; gap: 24px; padding: 18px 0; overflow-x: auto; border-bottom: 1px solid #dfe3e8; white-space: nowrap; }
 .topic-tabs a { color: #667085; text-decoration: none; }

@@ -84,11 +84,11 @@ model UserPreference {
   id              String   @id @default(cuid())
   userId          String   @unique
   identity        String?
-  skillDirection  String?
+  skillDirections String[] @default([])
   level           String?
   topics          String[]
   readingMinutes  Int?
-  learningGoal    String?
+  learningGoals   String[] @default([])
   morningTime     String?
   eveningTime     String?
   timezone        String   @default("Asia/Shanghai")

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 const topics = ["全部", "AI 行业", "大模型", "GitHub 开源项目"];
@@ -21,7 +22,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     .sort((a, b) => b.personalizedRank - a.personalizedRank)
     .slice(0, limit);
 
-  return <main className="feed-shell"><header className="feed-header"><div><p className="eyebrow">知线 · AI Industry Intelligence</p><h1>值得关注的行业变化</h1><p>{user ? "已根据你的关注方向排序。" : "经过翻译、聚类、分析和双模型核验的信息。"}</p></div><div className="header-actions">{user ? <><span>{user.email}</span><nav><Link href="/saved">收藏</Link><Link href="/history">历史</Link><Link href="/onboarding">偏好</Link></nav><form action="/api/auth/logout" method="post"><button className="text-button">退出</button></form></> : <Link className="login-link" href="/login">登录解锁深度分析</Link>}</div></header>
+  return <main className="feed-shell"><header className="feed-header"><div><Image className="brand-logo" src="/brand-logo.png" width={270} height={105} alt="知线 AI 行业研究" priority /><h1>值得关注的行业变化</h1><p>{user ? "已根据你的关注方向排序。" : "经过翻译、聚类、分析和双模型核验的信息。"}</p></div><div className="header-actions">{user ? <><span>{user.email}</span><nav><Link href="/saved">收藏</Link><Link href="/history">历史</Link><Link href="/onboarding">偏好</Link></nav><form action="/api/auth/logout" method="post"><button className="text-button">退出</button></form></> : <Link className="login-link" href="/login">登录解锁深度分析</Link>}</div></header>
     <nav className="topic-tabs">{topics.map((topic) => <Link className={topic === activeTopic ? "active" : ""} key={topic} href={topic === "全部" ? "/" : `/?topic=${encodeURIComponent(topic)}`}>{topic}</Link>)}<Link href="/digests">行业简报</Link></nav>
     <section className="feed-list">{ranked.length === 0 ? <p>当前没有通过自动核验的内容。</p> : ranked.map(({ event, personalizedRank }) => { const analysis = event.analyses[0]; const source = event.documents[0]?.document.source; return <article className="feed-card" key={event.id}>
       <div className="feed-meta"><span>{event.topic || "AI 行业"}</span><span>{source?.name}</span><span>可信度 {Math.round((analysis?.confidence || 0) * 100)}%</span></div>

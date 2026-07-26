@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 const allowedTopics = new Set(["AI 行业", "大模型", "GitHub 开源项目"]);
 const allowedCounts = new Set([5, 10, 20]);
+const allowedSkills = new Set(["AI 应用", "Java 后端", "Python", "前端", "暂未确定"]);
+const allowedGoals = new Set(["了解行业", "提升技能", "找工作", "技术选型", "创业研究"]);
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -11,6 +13,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const topics = Array.isArray(body?.topics) ? body.topics.filter((topic: unknown): topic is string => typeof topic === "string" && allowedTopics.has(topic)) : [];
+  const skillDirections = Array.isArray(body?.skillDirections) ? body.skillDirections.filter((value: unknown): value is string => typeof value === "string" && allowedSkills.has(value)) : [];
+  const learningGoals = Array.isArray(body?.learningGoals) ? body.learningGoals.filter((value: unknown): value is string => typeof value === "string" && allowedGoals.has(value)) : [];
   const itemsPerDigest = Number(body?.itemsPerDigest);
   if (!allowedCounts.has(itemsPerDigest)) return NextResponse.json({ error: "内容数量设置无效" }, { status: 400 });
   const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -21,8 +25,8 @@ export async function POST(request: Request) {
 
   await prisma.userPreference.upsert({
     where: { userId: user.id },
-    update: { identity: body.identity || null, skillDirection: body.skillDirection || null, level: body.level || null, learningGoal: body.learningGoal || null, topics, itemsPerDigest, ...delivery },
-    create: { userId: user.id, identity: body.identity || null, skillDirection: body.skillDirection || null, level: body.level || null, learningGoal: body.learningGoal || null, topics, itemsPerDigest, ...delivery },
+    update: { identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics, itemsPerDigest, ...delivery },
+    create: { userId: user.id, identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics, itemsPerDigest, ...delivery },
   });
   return NextResponse.json({ ok: true });
 }

@@ -19,6 +19,7 @@
     ,"digest:send:morning": "node --env-file=.env scripts/send-digests.mjs MORNING"
     ,"digest:send:evening": "node --env-file=.env scripts/send-digests.mjs EVENING"
     ,"digest:send:weekly": "node --env-file=.env scripts/send-digests.mjs WEEKLY"
+    ,"assets:brand": "node scripts/build-brand-assets.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
