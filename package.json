@@ -2,6 +2,7 @@
   "name": "ai-industry-research-platform",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
