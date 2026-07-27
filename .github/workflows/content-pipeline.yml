@@ -20,11 +20,13 @@ jobs:
       - run: npm ci
       - run: npm run db:generate
       - run: npm run db:push
+      - run: npm run industry:seed
       - run: npm run sources:ingest
       - run: npm run sources:community
       - run: npm run content:process
       - run: npm run content:embed
       - run: npm run content:analyze
+      - run: npm run entities:extract
       - name: Generate scheduled digest
         shell: bash
         run: |
