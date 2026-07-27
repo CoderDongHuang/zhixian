@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-export const preferredRegion = "dub1";
+export const preferredRegion = "hnd1";
 
 export async function GET() {
   const started = Date.now();

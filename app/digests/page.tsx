@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-export const preferredRegion = "dub1";
+export const preferredRegion = "hnd1";
 const labels = { MORNING: "早报", EVENING: "晚报", WEEKLY: "周报" } as const;
 
 export default async function DigestsPage() {

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
-export const preferredRegion = "dub1";
+export const preferredRegion = "hnd1";
 
 function isAdmin(email?: string | null) {
   return Boolean(email && (process.env.ADMIN_EMAILS || "").split(",").map((value) => value.trim().toLowerCase()).includes(email.toLowerCase()));

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { InteractionBar } from "./interaction-bar";
 
 export const dynamic = "force-dynamic";
-export const preferredRegion = "dub1";
+export const preferredRegion = "hnd1";
 
 export default async function EventDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
