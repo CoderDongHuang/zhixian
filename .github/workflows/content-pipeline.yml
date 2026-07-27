@@ -22,7 +22,6 @@ jobs:
       - run: npm run sources:ingest
       - run: npm run content:process
       - run: npm run content:analyze
-      - run: npm run reviews:auto-resolve
       - name: Generate scheduled digest
         shell: bash
         run: |
