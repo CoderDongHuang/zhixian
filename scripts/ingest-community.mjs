@@ -11,7 +11,11 @@ const sources = [
 function hash(url, title) { return createHash("sha256").update(`${url}:${title}`).digest("hex"); }
 function text(value) { return typeof value === "string" ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : ""; }
 async function upsertSource(config) {
-  return prisma.source.upsert({ where: { url: config.url }, update: { name: config.name, type: config.type, trustScore: config.trustScore }, create: { ...config, language: DocumentLanguage.EN } });
+  const existing = await prisma.source.findFirst({ where: { url: config.url } });
+  if (existing) {
+    return prisma.source.update({ where: { id: existing.id }, data: { name: config.name, type: config.type, trustScore: config.trustScore } });
+  }
+  return prisma.source.create({ data: { ...config, language: DocumentLanguage.EN } });
 }
 async function save(source, item) {
   const url = item.url || item.link;
