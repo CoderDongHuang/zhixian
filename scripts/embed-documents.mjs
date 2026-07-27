@@ -16,7 +16,7 @@ try {
     const response = await fetch(process.env.EMBEDDING_API_URL, { method: "POST", headers: { Authorization: `Bearer ${process.env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, input: [text], dimensions }), signal: AbortSignal.timeout(60000) });
     const result = await response.json(); if (!response.ok) throw new Error(result?.error?.message || `Embedding HTTP ${response.status}`);
     const vector = result.data?.[0]?.embedding; if (!Array.isArray(vector)) throw new Error("Embedding response missing vector");
-    await client.query(`insert into "Embedding" (id, document_id, content_hash, model, dimensions, vector, created_at) values (gen_random_uuid()::text, $1, $2, $3, $4, $5::vector, now()) on conflict (content_hash) do nothing`, [row.id, contentHash, model, dimensions, `[${vector.join(",")}]`]);
+    await client.query(`insert into "Embedding" (id, "documentId", "contentHash", model, dimensions, vector, "createdAt") values (gen_random_uuid()::text, $1, $2, $3, $4, $5::vector, now()) on conflict ("contentHash") do nothing`, [row.id, contentHash, model, dimensions, `[${vector.join(",")}]`]);
     created++;
   }
   console.log({ total: rows.length, created });
