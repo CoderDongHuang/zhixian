@@ -12,6 +12,11 @@
     "db:push": "prisma db push",
     "invite:create": "node --env-file-if-exists=.env scripts/create-invite.mjs",
     "sources:ingest": "node --env-file-if-exists=.env scripts/ingest-sources.mjs"
+    ,"sources:community": "node --env-file-if-exists=.env scripts/ingest-community.mjs"
+    ,"content:embed": "node --env-file-if-exists=.env scripts/embed-documents.mjs"
+    ,"alerts:keywords": "node --env-file-if-exists=.env scripts/send-keyword-alerts.mjs"
+    ,"industry:seed": "node --env-file-if-exists=.env scripts/seed-industry.mjs"
+    ,"entities:extract": "node --env-file-if-exists=.env scripts/extract-entities.mjs"
     ,"content:process": "node --env-file-if-exists=.env scripts/process-documents.mjs"
     ,"content:analyze": "node --env-file-if-exists=.env scripts/analyze-events.mjs"
     ,"reviews:auto-resolve": "node --env-file-if-exists=.env scripts/auto-resolve-reviews.mjs"

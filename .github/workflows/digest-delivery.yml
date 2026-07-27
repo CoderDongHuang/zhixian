@@ -22,6 +22,7 @@ jobs:
           npm run digest:send:morning
           npm run digest:send:evening
           npm run digest:send:weekly
+          npm run alerts:keywords
       - name: Send failure alert
         if: failure()
         run: |
@@ -37,3 +38,4 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
       ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      APP_URL: ${{ secrets.APP_URL }}

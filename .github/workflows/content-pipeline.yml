@@ -19,10 +19,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate
+      - run: npm run db:push
+      - run: npm run industry:seed
       - run: npm run sources:ingest
+      - run: npm run sources:community
       - run: npm run content:process
+      - run: npm run content:embed
       - run: npm run content:analyze
-      - run: npm run reviews:auto-resolve
+      - run: npm run entities:extract
       - name: Generate scheduled digest
         shell: bash
         run: |
@@ -42,6 +46,7 @@ jobs:
             -d "{\"from\":\"知线监控 <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"知线流水线失败\",\"text\":\"GitHub Actions 运行失败：$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.DATABASE_URL }}
       AI_API_KEY: ${{ secrets.AI_API_KEY }}
       AI_API_URL: ${{ secrets.AI_API_URL }}
       AI_MODEL: ${{ secrets.AI_MODEL }}
@@ -54,3 +59,16 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
       ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_HUNT_ENABLED: ${{ secrets.PRODUCT_HUNT_ENABLED }}
+      PRODUCT_HUNT_CLIENT_ID: ${{ secrets.PRODUCT_HUNT_CLIENT_ID }}
+      PRODUCT_HUNT_CLIENT_SECRET: ${{ secrets.PRODUCT_HUNT_CLIENT_SECRET }}
+      STACKEXCHANGE_API_KEY: ${{ secrets.STACKEXCHANGE_API_KEY }}
+      REDDIT_ENABLED: ${{ secrets.REDDIT_ENABLED }}
+      REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+      REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+      REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      EMBEDDING_API_URL: ${{ secrets.EMBEDDING_API_URL }}
+      EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
+      EMBEDDING_DIMENSIONS: ${{ secrets.EMBEDDING_DIMENSIONS }}

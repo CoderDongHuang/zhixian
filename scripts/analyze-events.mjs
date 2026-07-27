@@ -34,7 +34,9 @@ for (const event of events) {
     const factuality = Number(verification.factuality) || 0;
     const relevance = Number(verification.relevance) || 0;
     const completeness = Number(verification.completeness) || 0;
-    const confidence = Math.max(0, Math.min(1, factuality * 0.5 + relevance * 0.15 + completeness * 0.15 + trustScore * 0.2));
+    const calculatedConfidence = factuality * 0.5 + relevance * 0.15 + completeness * 0.15 + trustScore * 0.2;
+    const sourceCount = new Set(event.documents.map(({ document }) => document.sourceId)).size;
+    const confidence = Math.max(0, Math.min(sourceCount >= 2 ? 1 : 0.74, calculatedConfidence));
     const unsupportedClaims = Array.isArray(verification.unsupportedClaims) ? verification.unsupportedClaims : [];
     const status = confidence >= 0.78 && unsupportedClaims.length === 0 ? ReviewStatus.AUTO_PUBLISHED : ReviewStatus.PENDING_REVIEW;
     const facts = Array.isArray(analysis.facts) ? analysis.facts : [];
