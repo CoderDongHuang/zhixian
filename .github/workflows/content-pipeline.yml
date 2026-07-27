@@ -19,8 +19,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate
-      - run: npm run db:push
-      - run: npm run industry:seed
       - run: npm run sources:ingest
       - run: npm run sources:community
       - run: npm run content:process
