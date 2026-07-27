@@ -28,11 +28,18 @@ jobs:
         run: |
           hour="$(date -u +%H)"
           weekday="$(date -u +%u)"
-          if [ "$weekday" = "7" ] && [ "$hour" = "01" ]; then npm run digest:weekly && npm run digest:send:weekly;
-          elif [ "$hour" = "00" ]; then npm run digest:morning && npm run digest:send:morning;
-          else npm run digest:evening && npm run digest:send:evening; fi
+          if [ "$weekday" = "7" ] && [ "$hour" = "01" ]; then npm run digest:weekly;
+          elif [ "$hour" = "00" ]; then npm run digest:morning;
+          else npm run digest:evening; fi
         env:
           TZ: Asia/Shanghai
+      - name: Send failure alert
+        if: failure()
+        run: |
+          curl --fail-with-body -sS https://api.resend.com/emails \
+            -H "Authorization: Bearer $EMAIL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"知线监控 <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"知线流水线失败\",\"text\":\"GitHub Actions 运行失败：$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       AI_API_KEY: ${{ secrets.AI_API_KEY }}
@@ -46,3 +53,4 @@ jobs:
       DIGEST_EMAIL_FROM: ${{ secrets.DIGEST_EMAIL_FROM }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
+      ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}

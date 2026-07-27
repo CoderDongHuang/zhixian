@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "dub1";
 const topics = ["全部", "AI 行业", "大模型", "GitHub 开源项目"];
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {

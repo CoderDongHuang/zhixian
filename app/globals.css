@@ -86,3 +86,13 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .offline-page h1 { margin: 8px 0 0; }
 .offline-page p { color: #667085; line-height: 1.7; }
 .offline-page a { color: #176b4d; font-weight: 700; }
+.loading-shell { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0; color: #667085; }
+.loading-bar { height: 3px; width: 100%; overflow: hidden; background: #dfe3e8; position: relative; }
+.loading-bar::after { content: ""; display: block; width: 32%; height: 100%; background: #176b4d; animation: loading-slide 1.1s ease-in-out infinite; }
+@keyframes loading-slide { from { transform: translateX(-110%); } to { transform: translateX(330%); } }
+.pwa-tools { position: fixed; right: 16px; bottom: 16px; z-index: 20; padding: 9px 12px; font-size: 13px; box-shadow: 0 4px 16px rgb(16 24 40 / 18%); }
+.review-list { display: grid; gap: 20px; }
+.review-card { padding: 22px 0; border-bottom: 1px solid #dfe3e8; }
+.review-card h2 { line-height: 1.5; }
+.review-card li { margin: 10px 0; line-height: 1.6; }
+.review-actions form { display: flex; gap: 10px; }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const preferredRegion = "dub1";
 type DigestContent = { changes?: string[]; actions?: string[]; items?: { eventId: string; topic: string; title: string; whyImportant: string; confidence: number; source: string }[] };
 
 export default async function DigestDetail({ params }: { params: Promise<{ id: string }> }) {

@@ -9,6 +9,22 @@ const digest = await prisma.digest.findFirst({ where: { type }, orderBy: { creat
 if (!digest) { console.log(`No ${type} digest found`); await prisma.$disconnect(); process.exit(0); }
 const enabledField = type === DigestType.MORNING ? "morningEnabled" : type === DigestType.EVENING ? "eveningEnabled" : "weeklyEnabled";
 const users = await prisma.user.findMany({ where: { email: { not: null }, OR: [{ preference: null }, { preference: { is: { emailEnabled: true, [enabledField]: true } } }] }, include: { preference: true } });
+function localClock(timeZone) {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const get = (name) => parts.find((part) => part.type === name)?.value || "0";
+  return { weekday: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday")), minutes: Number(get("hour")) * 60 + Number(get("minute")) };
+}
+function isDue(user) {
+  const preference = user.preference;
+  const timezone = preference?.timezone || "Asia/Shanghai";
+  const clock = localClock(timezone);
+  if (type === DigestType.WEEKLY && clock.weekday !== (preference?.weeklyDay ?? 0)) return false;
+  const configured = type === DigestType.MORNING ? preference?.morningTime || "08:00" : type === DigestType.EVENING ? preference?.eveningTime || "20:00" : preference?.morningTime || "09:00";
+  const [hour, minute] = configured.split(":").map(Number);
+  const delta = (clock.minutes - (hour * 60 + minute) + 1440) % 1440;
+  return delta < 15;
+}
+const dueUsers = users.filter(isDue);
 const content = digest.content;
 
 function escapeHtml(value = "") { return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]); }
@@ -22,7 +38,7 @@ function renderEmail(user) {
 }
 
 let sent = 0, failed = 0, skipped = 0;
-for (const user of users) {
+for (const user of dueUsers) {
   const existing = await prisma.emailDelivery.findUnique({ where: { digestId_userId: { digestId: digest.id, userId: user.id } } });
   if (existing?.status === DeliveryStatus.SENT) { skipped++; continue; }
   try {
@@ -33,5 +49,5 @@ for (const user of users) {
     await prisma.emailDelivery.upsert({ where: { digestId_userId: { digestId: digest.id, userId: user.id } }, update: { status: DeliveryStatus.FAILED, error: String(error.message).slice(0, 1000) }, create: { digestId: digest.id, userId: user.id, recipient: user.email, status: DeliveryStatus.FAILED, error: String(error.message).slice(0, 1000) } }); failed++;
   }
 }
-console.log({ digest: digest.key, recipients: users.length, sent, failed, skipped });
+console.log({ digest: digest.key, recipients: dueUsers.length, eligible: users.length, sent, failed, skipped });
 await prisma.$disconnect();

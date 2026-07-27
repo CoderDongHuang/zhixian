@@ -1,0 +1,39 @@
+name: Digest delivery
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  send-digests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Send due digests
+        run: |
+          npm run digest:send:morning
+          npm run digest:send:evening
+          npm run digest:send:weekly
+      - name: Send failure alert
+        if: failure()
+        run: |
+          curl --fail-with-body -sS https://api.resend.com/emails \
+            -H "Authorization: Bearer $EMAIL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"知线监控 <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"知线邮件投递失败\",\"text\":\"GitHub Actions 运行失败：$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      DIGEST_EMAIL_FROM: ${{ secrets.DIGEST_EMAIL_FROM }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      APP_URL: ${{ secrets.APP_URL }}
+      ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
