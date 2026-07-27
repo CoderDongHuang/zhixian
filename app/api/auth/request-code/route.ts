@@ -8,12 +8,13 @@ export async function POST(request: Request) {
   const email = normalizeEmail(body?.email ?? "");
   const inviteCode = String(body?.inviteCode ?? "").trim();
 
-  if (!isValidEmail(email) || !inviteCode) {
-    return NextResponse.json({ error: "请输入有效邮箱和邀请码" }, { status: 400 });
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "请输入有效邮箱" }, { status: 400 });
   }
 
-  const invitation = await prisma.invitation.findUnique({ where: { code: inviteCode } });
-  if (!invitation || invitation.usedAt || (invitation.expiresAt && invitation.expiresAt < new Date()) || (invitation.email && invitation.email !== email)) {
+  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  const invitation = inviteCode ? await prisma.invitation.findUnique({ where: { code: inviteCode } }) : null;
+  if (!existingUser && (!invitation || invitation.usedAt || (invitation.expiresAt && invitation.expiresAt < new Date()) || (invitation.email && invitation.email !== email))) {
     return NextResponse.json({ error: "邀请码无效或已使用" }, { status: 403 });
   }
 

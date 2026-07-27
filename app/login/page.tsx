@@ -29,7 +29,7 @@ export default function LoginPage() {
     <p className="eyebrow">邀请测试</p><h1>登录知线</h1><p>输入邀请信息，开始建立你的 AI 行业信息流。</p>
     <form onSubmit={submit}>
       <label>邮箱<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={step === "verify"} required /></label>
-      <label>邀请码<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} disabled={step === "verify"} required /></label>
+      <label>邀请码（新用户必填）<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} disabled={step === "verify"} /></label>
       {step === "verify" && <label>邮箱验证码<input inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value)} required /></label>}
       {message && <p className="form-message">{message}</p>}
       <button disabled={loading}>{loading ? "处理中..." : step === "request" ? "获取验证码" : "登录"}</button>

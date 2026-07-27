@@ -10,9 +10,10 @@ export async function POST(request: Request) {
   const now = new Date();
 
   const otp = await prisma.emailOtp.findFirst({ where: { email, codeHash: hashSecret(code), usedAt: null, expiresAt: { gt: now } }, orderBy: { createdAt: "desc" } });
-  const invitation = await prisma.invitation.findUnique({ where: { code: inviteCode } });
-  if (!otp || !invitation || invitation.usedAt || (invitation.expiresAt && invitation.expiresAt < now)) {
-    return NextResponse.json({ error: "验证码或邀请码无效" }, { status: 401 });
+  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  const invitation = inviteCode ? await prisma.invitation.findUnique({ where: { code: inviteCode } }) : null;
+  if (!otp || (!existingUser && (!invitation || invitation.usedAt || (invitation.expiresAt && invitation.expiresAt < now)))) {
+    return NextResponse.json({ error: existingUser ? "验证码无效或已过期" : "验证码或邀请码无效" }, { status: 401 });
   }
 
   const token = createSessionToken();
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.upsert({ where: { email }, update: {}, create: { email } });
     await tx.emailOtp.update({ where: { id: otp.id }, data: { usedAt: now } });
-    await tx.invitation.update({ where: { id: invitation.id }, data: { usedAt: now } });
+    if (!existingUser && invitation) await tx.invitation.update({ where: { id: invitation.id }, data: { usedAt: now } });
     await tx.session.create({ data: { userId: user.id, tokenHash: hashSecret(token), expiresAt } });
   });
 
