@@ -54,3 +54,4 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
       ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      GITHUB_TOKEN: ${{ github.token }}
