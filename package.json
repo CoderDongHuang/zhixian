@@ -9,17 +9,17 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "invite:create": "node --env-file=.env scripts/create-invite.mjs",
-    "sources:ingest": "node --env-file=.env scripts/ingest-sources.mjs"
-    ,"content:process": "node --env-file=.env scripts/process-documents.mjs"
-    ,"content:analyze": "node --env-file=.env scripts/analyze-events.mjs"
-    ,"reviews:auto-resolve": "node --env-file=.env scripts/auto-resolve-reviews.mjs"
-    ,"digest:morning": "node --env-file=.env scripts/generate-digest.mjs MORNING"
-    ,"digest:evening": "node --env-file=.env scripts/generate-digest.mjs EVENING"
-    ,"digest:weekly": "node --env-file=.env scripts/generate-digest.mjs WEEKLY"
-    ,"digest:send:morning": "node --env-file=.env scripts/send-digests.mjs MORNING"
-    ,"digest:send:evening": "node --env-file=.env scripts/send-digests.mjs EVENING"
-    ,"digest:send:weekly": "node --env-file=.env scripts/send-digests.mjs WEEKLY"
+    "invite:create": "node --env-file-if-exists=.env scripts/create-invite.mjs",
+    "sources:ingest": "node --env-file-if-exists=.env scripts/ingest-sources.mjs"
+    ,"content:process": "node --env-file-if-exists=.env scripts/process-documents.mjs"
+    ,"content:analyze": "node --env-file-if-exists=.env scripts/analyze-events.mjs"
+    ,"reviews:auto-resolve": "node --env-file-if-exists=.env scripts/auto-resolve-reviews.mjs"
+    ,"digest:morning": "node --env-file-if-exists=.env scripts/generate-digest.mjs MORNING"
+    ,"digest:evening": "node --env-file-if-exists=.env scripts/generate-digest.mjs EVENING"
+    ,"digest:weekly": "node --env-file-if-exists=.env scripts/generate-digest.mjs WEEKLY"
+    ,"digest:send:morning": "node --env-file-if-exists=.env scripts/send-digests.mjs MORNING"
+    ,"digest:send:evening": "node --env-file-if-exists=.env scripts/send-digests.mjs EVENING"
+    ,"digest:send:weekly": "node --env-file-if-exists=.env scripts/send-digests.mjs WEEKLY"
     ,"assets:brand": "node scripts/build-brand-assets.mjs"
   },
   "dependencies": {
