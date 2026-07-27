@@ -39,6 +39,20 @@ enum DeliveryStatus {
   FAILED
 }
 
+enum EntityType {
+  COMPANY
+  PERSON
+  PRODUCT
+  TECHNOLOGY
+  OPEN_SOURCE_PROJECT
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model User {
   id         String          @id @default(cuid())
   email      String?         @unique
@@ -50,6 +64,8 @@ model User {
   sessions   Session[]
   digests    Digest[]
   deliveries EmailDelivery[]
+  keywords   KeywordSubscription[]
+  alerts     AlertDelivery[]
 }
 
 model Invitation {
@@ -165,6 +181,8 @@ model RawDocument {
   source            Source           @relation(fields: [sourceId], references: [id])
   events            EventDocument[]
   evidence          Evidence[]
+  mentions          EntityMention[]
+  embeddings        Embedding[]
 }
 
 model Event {
@@ -178,6 +196,11 @@ model Event {
   documents  EventDocument[]
   analyses   Analysis[]
   feedItems  FeedItem[]
+  mentions   EntityMention[]
+  timeline   EventTimeline[]
+  outgoingRelations EventRelation[] @relation("EventFrom")
+  incomingRelations EventRelation[] @relation("EventTo")
+  alerts     AlertDelivery[]
 }
 
 model EventDocument {
@@ -262,4 +285,128 @@ model Feedback {
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+}
+
+model Entity {
+  id          String       @id @default(cuid())
+  type        EntityType
+  name        String
+  normalized  String
+  description String?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  mentions    EntityMention[]
+  aliases     EntityAlias[]
+  embeddings  Embedding[]
+
+  @@unique([type, normalized])
+  @@index([type, name])
+}
+
+model EntityAlias {
+  id       String @id @default(cuid())
+  entityId String
+  alias    String
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, alias])
+  @@index([alias])
+}
+
+model EntityMention {
+  entityId  String
+  eventId   String
+  documentId String?
+  context   String?
+  entity    Entity       @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  document  RawDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@id([entityId, eventId])
+  @@index([eventId])
+}
+
+model EventTimeline {
+  id          String   @id @default(cuid())
+  eventId     String
+  occurredAt  DateTime
+  label       String
+  description String
+  sourceUrl   String?
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, occurredAt])
+}
+
+model EventRelation {
+  fromEventId String
+  toEventId   String
+  relation    String
+  confidence  Float    @default(0.5)
+  fromEvent   Event    @relation("EventFrom", fields: [fromEventId], references: [id], onDelete: Cascade)
+  toEvent     Event    @relation("EventTo", fields: [toEventId], references: [id], onDelete: Cascade)
+
+  @@id([fromEventId, toEventId])
+}
+
+model IndustryNode {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  sortOrder Int      @default(0)
+  parent    IndustryNode? @relation("IndustryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  IndustryNode[] @relation("IndustryTree")
+
+  @@index([parentId, sortOrder])
+}
+
+model KeywordSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  keyword     String
+  normalized  String
+  enabled     Boolean  @default(true)
+  realtime    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts      AlertDelivery[]
+
+  @@unique([userId, normalized])
+  @@index([normalized, enabled])
+}
+
+model AlertDelivery {
+  id          String      @id @default(cuid())
+  userId      String
+  eventId     String
+  keywordId   String?
+  status      AlertStatus @default(PENDING)
+  providerId  String?
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  keyword     KeywordSubscription? @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, eventId, keywordId])
+  @@index([status, createdAt])
+}
+
+model Embedding {
+  id         String   @id @default(cuid())
+  documentId String?
+  entityId   String?
+  contentHash String  @unique
+  model      String
+  dimensions Int
+  vector     Unsupported("vector(1024)")
+  createdAt  DateTime @default(now())
+  document   RawDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  entity     Entity?      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([entityId])
 }
