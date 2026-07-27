@@ -2,9 +2,9 @@ import { PrismaClient, AlertStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 if (!process.env.EMAIL_API_KEY || !process.env.EMAIL_FROM || !process.env.APP_URL || !process.env.AUTH_SECRET) throw new Error("Alert email configuration is incomplete");
-const keywords = await prisma.keywordSubscription.findMany({ where: { enabled: true }, include: { user: true } });
+const keywords = await prisma.keywordSubscription.findMany({ where: { enabled: true, realtime: true }, include: { user: true } });
 const since = new Date(Date.now() - 30 * 60 * 1000);
-const events = await prisma.event.findMany({ where: { createdAt: { gte: since }, analyses: { some: { status: "AUTO_PUBLISHED" } } }, include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 } }, take: 100 });
+const events = await prisma.event.findMany({ where: { createdAt: { gte: since }, importance: { gte: 0.75 }, feedItems: { some: {} }, analyses: { some: { status: "AUTO_PUBLISHED" } } }, include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 } }, take: 100 });
 let sent = 0;
 for (const subscription of keywords) {
   const matches = events.filter((event) => `${event.title} ${event.topic || ""} ${event.analyses[0]?.summary || ""}`.toLowerCase().includes(subscription.normalized));

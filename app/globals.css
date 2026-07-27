@@ -64,6 +64,14 @@ blockquote { margin: 16px 0 0; padding: 14px 18px; border-left: 3px solid #176b4
 .interaction-bar form button { justify-self: start; }
 .interaction-bar small { width: 100%; color: #176b4d; }
 .library-shell { width: min(820px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 80px; }
+.keyword-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 12px; margin: 28px 0; }
+.keyword-form label { display: grid; gap: 8px; color: #475467; font-size: 14px; }
+.keyword-form input[type="text"], .keyword-form input:not([type]) { min-height: 42px; padding: 9px 11px; border: 1px solid #cdd3da; border-radius: 6px; font: inherit; }
+.keyword-form .keyword-realtime { display: flex; align-items: center; min-height: 42px; white-space: nowrap; }
+.keyword-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.keyword-item div { display: grid; gap: 6px; }
+.keyword-item span { color: #667085; font-size: 13px; }
+@media (max-width: 640px) { .keyword-form { grid-template-columns: 1fr; align-items: stretch; } .keyword-item { align-items: flex-start; } }
 .library-shell header { border-bottom: 1px solid #dfe3e8; padding-bottom: 22px; }
 .library-shell header > a { color: #176b4d; text-decoration: none; }
 .library-shell header h1 { margin-top: 28px; }
