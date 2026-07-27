@@ -43,5 +43,6 @@ jobs:
       ANALYSIS_AI_MODEL: ${{ secrets.ANALYSIS_AI_MODEL }}
       EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      DIGEST_EMAIL_FROM: ${{ secrets.DIGEST_EMAIL_FROM }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}

@@ -8,7 +8,7 @@ if (!process.env.EMAIL_API_KEY || !process.env.EMAIL_FROM || !process.env.AUTH_S
 const digest = await prisma.digest.findFirst({ where: { type }, orderBy: { createdAt: "desc" } });
 if (!digest) { console.log(`No ${type} digest found`); await prisma.$disconnect(); process.exit(0); }
 const enabledField = type === DigestType.MORNING ? "morningEnabled" : type === DigestType.EVENING ? "eveningEnabled" : "weeklyEnabled";
-const users = await prisma.user.findMany({ where: { email: { not: null }, preference: { is: { emailEnabled: true, [enabledField]: true } } }, include: { preference: true } });
+const users = await prisma.user.findMany({ where: { email: { not: null }, OR: [{ preference: null }, { preference: { is: { emailEnabled: true, [enabledField]: true } } }] }, include: { preference: true } });
 const content = digest.content;
 
 function escapeHtml(value = "") { return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]); }
@@ -26,7 +26,7 @@ for (const user of users) {
   const existing = await prisma.emailDelivery.findUnique({ where: { digestId_userId: { digestId: digest.id, userId: user.id } } });
   if (existing?.status === DeliveryStatus.SENT) { skipped++; continue; }
   try {
-    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.EMAIL_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `知线 <${process.env.EMAIL_FROM}>`, to: [user.email], subject: digest.title, html: renderEmail(user) }), signal: AbortSignal.timeout(30000) });
+    const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.EMAIL_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `知线行业简报 <${process.env.DIGEST_EMAIL_FROM || process.env.EMAIL_FROM}>`, to: [user.email], subject: digest.title, html: renderEmail(user) }), signal: AbortSignal.timeout(30000) });
     const result = await response.json(); if (!response.ok) throw new Error(result?.message || `Resend HTTP ${response.status}`);
     await prisma.emailDelivery.upsert({ where: { digestId_userId: { digestId: digest.id, userId: user.id } }, update: { status: DeliveryStatus.SENT, providerId: result.id, error: null, sentAt: new Date() }, create: { digestId: digest.id, userId: user.id, recipient: user.email, status: DeliveryStatus.SENT, providerId: result.id, sentAt: new Date() } }); sent++;
   } catch (error) {

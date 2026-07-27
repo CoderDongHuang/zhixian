@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.upsert({ where: { email }, update: {}, create: { email } });
+    await tx.userPreference.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, topics: ["AI 行业", "大模型", "GitHub 开源项目"] } });
     await tx.emailOtp.update({ where: { id: otp.id }, data: { usedAt: now } });
     if (!existingUser && invitation) await tx.invitation.update({ where: { id: invitation.id }, data: { usedAt: now } });
     await tx.session.create({ data: { userId: user.id, tokenHash: hashSecret(token), expiresAt } });

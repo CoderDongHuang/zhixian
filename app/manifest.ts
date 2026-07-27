@@ -6,9 +6,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "知线",
     description: "持续追踪 AI 行业、大模型与 GitHub 开源项目的重要变化。",
     start_url: "/",
+    id: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#f7f8fa",
     theme_color: "#0b1220",
+    categories: ["news", "education", "productivity"],
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
