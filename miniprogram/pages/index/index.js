@@ -1,0 +1,2 @@
+const app = getApp();
+Page({ data:{items:[],loading:true}, onLoad(){this.load()}, onPullDownRefresh(){this.load()}, load(){this.setData({loading:true});wx.request({url:`${app.globalData.apiBase}/api/mini/feed`,header:{"x-mini-token":app.globalData.apiToken},success:({data})=>this.setData({items:data.items||[]}),complete:()=>{this.setData({loading:false});wx.stopPullDownRefresh()}})}, open(e){wx.navigateTo({url:`/pages/report/report?id=${e.currentTarget.dataset.id}`})} })

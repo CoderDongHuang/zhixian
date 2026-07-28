@@ -1,4 +1,4 @@
-const CACHE = "zhixian-v1";
+const CACHE = "zhixian-v03";
 const OFFLINE_ASSETS = ["/offline", "/icon-192.png", "/icon-512.png", "/brand-logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -20,4 +20,18 @@ self.addEventListener("fetch", (event) => {
     if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
     return response;
   })));
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "CACHE_URL" && event.data.url) event.waitUntil(caches.open(CACHE).then((cache) => cache.add(event.data.url)));
+});
+
+self.addEventListener("push", (event) => {
+  const data = event.data?.json() || {};
+  event.waitUntil(self.registration.showNotification(data.title || "知线有新内容", { body: data.body || "打开查看最新行业变化", icon: "/icon-192.png", badge: "/favicon.png", data: { url: data.url || "/" } }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(event.notification.data?.url || "/"));
 });

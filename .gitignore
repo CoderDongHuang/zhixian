@@ -4,6 +4,8 @@ node_modules/
 .next.build-*/
 .env
 .env.local
+miniprogram/config.js
+miniprogram/project.private.config.json
 *.log
 *.tsbuildinfo
 .vercel

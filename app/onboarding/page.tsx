@@ -21,7 +21,7 @@ export default function OnboardingPage() {
     event.preventDefault(); setLoading(true); setMessage("");
     const data = new FormData(event.currentTarget);
     const payload = Object.fromEntries(data.entries());
-    const response = await fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, skillDirections: data.getAll("skillDirections"), learningGoals: data.getAll("learningGoals"), topics: data.getAll("topics"), itemsPerDigest: Number(data.get("itemsPerDigest")), emailEnabled: data.has("emailEnabled"), morningEnabled: data.has("morningEnabled"), eveningEnabled: data.has("eveningEnabled"), weeklyEnabled: data.has("weeklyEnabled") }) });
+    const response = await fetch("/api/preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, skillDirections: data.getAll("skillDirections"), learningGoals: data.getAll("learningGoals"), topics: data.getAll("topics"), itemsPerDigest: Number(data.get("itemsPerDigest")), emailEnabled: data.has("emailEnabled"), morningEnabled: data.has("morningEnabled"), eveningEnabled: data.has("eveningEnabled"), weeklyEnabled: data.has("weeklyEnabled"), dailyLearningEnabled: data.has("dailyLearningEnabled") }) });
     const result = await response.json(); setLoading(false);
     if (!response.ok) return setMessage(result.error ?? "保存失败");
     router.push("/");
@@ -35,6 +35,7 @@ export default function OnboardingPage() {
       <fieldset><legend>邮件推送</legend><div className="time-settings"><label><input type="checkbox" name="emailEnabled" defaultChecked />接收邮件简报</label></div></fieldset>
       <fieldset><legend>简报时间</legend><div className="time-settings"><label><input type="checkbox" name="morningEnabled" defaultChecked />早报</label><input type="time" name="morningTime" defaultValue="08:00" /><label><input type="checkbox" name="eveningEnabled" defaultChecked />晚报</label><input type="time" name="eveningTime" defaultValue="20:00" /></div></fieldset>
       <fieldset><legend>每周汇总</legend><div className="time-settings"><label><input type="checkbox" name="weeklyEnabled" defaultChecked />接收周报</label><select name="weeklyDay" defaultValue="0"><option value="0">周日</option><option value="1">周一</option><option value="5">周五</option><option value="6">周六</option></select></div></fieldset>
+      <fieldset><legend>每日学习建议</legend><div className="time-settings"><label><input type="checkbox" name="dailyLearningEnabled" defaultChecked />生成每日学习任务</label><input type="time" name="dailyLearningTime" defaultValue="07:30" /></div></fieldset>
       {message && <p className="form-message">{message}</p>}<div className="actions"><button type="button" className="secondary" onClick={() => router.push("/")}>暂时跳过</button><button type="submit" disabled={loading}>{loading ? "保存中..." : "保存并查看信息流"}</button></div>
     </form></main>;
 }

@@ -35,6 +35,8 @@ jobs:
           else npm run digest:evening; fi
         env:
           TZ: Asia/Shanghai
+      - name: Send mobile push
+        run: npm run push:send
       - name: Send failure alert
         if: failure()
         run: |
@@ -56,6 +58,9 @@ jobs:
       DIGEST_EMAIL_FROM: ${{ secrets.DIGEST_EMAIL_FROM }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
+      VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
       ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
       GITHUB_TOKEN: ${{ github.token }}
       PRODUCT_HUNT_ENABLED: ${{ secrets.PRODUCT_HUNT_ENABLED }}
