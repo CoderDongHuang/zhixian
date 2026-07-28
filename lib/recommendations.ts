@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
+import { measured } from "@/lib/performance";
 
 const ACTION_WEIGHTS: Record<string, number> = {
   view: 0.08,
@@ -11,14 +13,18 @@ const ACTION_WEIGHTS: Record<string, number> = {
   complete_learning: 0.7,
 };
 
-export async function getTopicAffinity(userId: string) {
+const getCachedBehavior = unstable_cache(async (userId: string) => {
   const since = new Date(Date.now() - 90 * 86400000);
-  const events = await prisma.behaviorEvent.findMany({
+  return measured("recommendations.behavior", () => prisma.behaviorEvent.findMany({
     where: { userId, topic: { not: null }, createdAt: { gte: since } },
     select: { topic: true, action: true, value: true, createdAt: true },
-    take: 1000,
+    take: 500,
     orderBy: { createdAt: "desc" },
-  });
+  }));
+}, ["topic-affinity-events-v031"], { revalidate: 60, tags: ["recommendations"] });
+
+export async function getTopicAffinity(userId: string) {
+  const events = await getCachedBehavior(userId);
   const affinity = new Map<string, number>();
   for (const event of events) {
     if (!event.topic) continue;

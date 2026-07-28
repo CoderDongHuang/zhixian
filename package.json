@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "test:e2e": "node tests/smoke.mjs",
+    "test:performance": "node tests/performance.mjs",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",

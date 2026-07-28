@@ -7,8 +7,10 @@ export async function GET() {
   const started = Date.now();
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return Response.json({ ok: true, database: "ok", latencyMs: Date.now() - started, timestamp: new Date().toISOString() });
+    const latencyMs = Date.now() - started;
+    return Response.json({ ok: true, database: "ok", latencyMs, timestamp: new Date().toISOString() }, { headers: { "Cache-Control": "no-store", "Server-Timing": `db;dur=${latencyMs}` } });
   } catch {
-    return Response.json({ ok: false, database: "error", latencyMs: Date.now() - started, timestamp: new Date().toISOString() }, { status: 503 });
+    const latencyMs = Date.now() - started;
+    return Response.json({ ok: false, database: "error", latencyMs, timestamp: new Date().toISOString() }, { status: 503, headers: { "Cache-Control": "no-store", "Server-Timing": `db;dur=${latencyMs}` } });
   }
 }

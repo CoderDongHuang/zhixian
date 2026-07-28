@@ -221,6 +221,7 @@ model Digest {
   deliveries  EmailDelivery[]
 
   @@index([userId, type, createdAt])
+  @@index([createdAt])
 }
 
 model EmailDelivery {
@@ -289,6 +290,8 @@ model Event {
   outgoingRelations EventRelation[] @relation("EventFrom")
   incomingRelations EventRelation[] @relation("EventTo")
   alerts            AlertDelivery[]
+
+  @@index([topic])
 }
 
 model EventDocument {
@@ -320,6 +323,8 @@ model Analysis {
   analyzedAt        DateTime     @default(now())
   event             Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   evidence          Evidence[]
+
+  @@index([eventId, status, analyzedAt])
 }
 
 model Evidence {
@@ -340,6 +345,8 @@ model FeedItem {
   bookmarks   Bookmark[]
   reads       ReadHistory[]
   feedback    Feedback[]
+
+  @@index([publishedAt])
 }
 
 model Bookmark {
@@ -362,6 +369,7 @@ model ReadHistory {
   feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, feedItemId])
+  @@index([userId, readAt])
 }
 
 model Feedback {
@@ -390,6 +398,7 @@ model Entity {
 
   @@unique([type, normalized])
   @@index([type, name])
+  @@index([updatedAt])
 }
 
 model EntityAlias {
@@ -425,6 +434,7 @@ model EventTimeline {
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId, occurredAt])
+  @@index([occurredAt])
 }
 
 model EventRelation {
