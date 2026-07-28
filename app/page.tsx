@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import { getTopicAffinity, recommendationScore } from "@/lib/recommendations";
+import { MobileTools } from "./mobile-tools";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -13,17 +15,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const activeTopic = topics.includes(requestedTopic ?? "") ? requestedTopic! : "全部";
   const limit = user?.preference?.itemsPerDigest ?? 10;
   const preferredTopics = new Set(user?.preference?.topics ?? []);
+  const affinity = user ? await getTopicAffinity(user.id) : new Map<string, number>();
   const items = await prisma.feedItem.findMany({
     where: activeTopic === "全部" ? undefined : { event: { topic: activeTopic } },
     include: { event: { include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 }, documents: { include: { document: { include: { source: true } } } } } } },
     orderBy: [{ publishedAt: "desc" }], take: 50,
   });
   const ranked = items
-    .map((item) => ({ ...item, personalizedRank: item.rank + (preferredTopics.has(item.event.topic ?? "") ? 0.15 : 0) }))
+    .map((item) => ({ ...item, personalizedRank: recommendationScore(item.rank, item.event.topic, preferredTopics, affinity) }))
     .sort((a, b) => b.personalizedRank - a.personalizedRank)
     .slice(0, limit);
 
-  return <main className="feed-shell"><header className="feed-header"><div><Image className="brand-logo" src="/brand-logo.png" width={270} height={105} alt="知线 AI 行业研究" priority /><h1>值得关注的行业变化</h1><p>{user ? "已根据你的关注方向排序。" : "经过翻译、聚类、分析和双模型核验的信息。"}</p></div><div className="header-actions">{user ? <><span>{user.email}</span><nav><Link href="/saved">收藏</Link><Link href="/history">历史</Link><Link href="/keywords">关键词提醒</Link><Link href="/onboarding">偏好</Link></nav><form action="/api/auth/logout" method="post"><button className="text-button">退出</button></form></> : <Link className="login-link" href="/login">登录解锁深度分析</Link>}</div></header>
+  return <main className="feed-shell"><header className="feed-header"><div><Image className="brand-logo" src="/brand-logo.png" width={270} height={105} alt="知线 AI 行业研究" priority /><h1>值得关注的行业变化</h1><p>{user ? "已根据你的关注和阅读行为排序。" : "经过翻译、聚类、分析和双模型核验的信息。"}</p></div><div className="header-actions">{user ? <><span>{user.email}</span><nav><Link href="/learning">学习路线</Link><Link href="/saved">收藏</Link><Link href="/history">历史</Link><Link href="/keywords">关键词提醒</Link><Link href="/onboarding">偏好</Link></nav><MobileTools publicKey={process.env.VAPID_PUBLIC_KEY || ""} signedIn /><form action="/api/auth/logout" method="post"><button className="text-button">退出</button></form></> : <Link className="login-link" href="/login">登录解锁深度分析</Link>}</div></header>
     <nav className="topic-tabs">{topics.map((topic) => <Link className={topic === activeTopic ? "active" : ""} key={topic} href={topic === "全部" ? "/" : `/?topic=${encodeURIComponent(topic)}`}>{topic}</Link>)}<Link href="/digests">行业简报</Link></nav>
     <section className="feed-list">{ranked.length === 0 ? <p>当前没有通过自动核验的内容。</p> : ranked.map(({ event, personalizedRank }) => { const analysis = event.analyses[0]; const source = event.documents[0]?.document.source; return <article className="feed-card" key={event.id}>
       <div className="feed-meta"><span>{event.topic || "AI 行业"}</span><span>{source?.name}</span><span>可信度 {Math.round((analysis?.confidence || 0) * 100)}%</span></div>

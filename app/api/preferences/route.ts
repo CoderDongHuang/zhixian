@@ -21,7 +21,8 @@ export async function POST(request: Request) {
   const morningTime = timePattern.test(body?.morningTime) ? body.morningTime : "08:00";
   const eveningTime = timePattern.test(body?.eveningTime) ? body.eveningTime : "20:00";
   const weeklyDay = Math.max(0, Math.min(6, Number(body?.weeklyDay) || 0));
-  const delivery = { morningTime, eveningTime, timezone: "Asia/Shanghai", emailEnabled: Boolean(body?.emailEnabled), morningEnabled: Boolean(body?.morningEnabled), eveningEnabled: Boolean(body?.eveningEnabled), weeklyEnabled: Boolean(body?.weeklyEnabled), weeklyDay };
+  const dailyLearningTime = timePattern.test(body?.dailyLearningTime) ? body.dailyLearningTime : "07:30";
+  const delivery = { morningTime, eveningTime, timezone: "Asia/Shanghai", emailEnabled: Boolean(body?.emailEnabled), morningEnabled: Boolean(body?.morningEnabled), eveningEnabled: Boolean(body?.eveningEnabled), weeklyEnabled: Boolean(body?.weeklyEnabled), weeklyDay, dailyLearningEnabled: Boolean(body?.dailyLearningEnabled), dailyLearningTime };
 
   await prisma.userPreference.upsert({
     where: { userId: user.id },

@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -54,18 +54,23 @@ enum AlertStatus {
 }
 
 model User {
-  id         String          @id @default(cuid())
-  email      String?         @unique
-  createdAt  DateTime        @default(now())
-  preference UserPreference?
-  bookmarks  Bookmark[]
-  reads      ReadHistory[]
-  feedback   Feedback[]
-  sessions   Session[]
-  digests    Digest[]
-  deliveries EmailDelivery[]
-  keywords   KeywordSubscription[]
-  alerts     AlertDelivery[]
+  id            String                @id @default(cuid())
+  email         String?               @unique
+  createdAt     DateTime              @default(now())
+  preference    UserPreference?
+  bookmarks     Bookmark[]
+  reads         ReadHistory[]
+  feedback      Feedback[]
+  sessions      Session[]
+  digests       Digest[]
+  deliveries    EmailDelivery[]
+  keywords      KeywordSubscription[]
+  alerts        AlertDelivery[]
+  devices       DeviceSubscription[]
+  behaviors     BehaviorEvent[]
+  learningPaths LearningPath[]
+  learningTasks LearningTask[]
+  exports       ReportExport[]
 }
 
 model Invitation {
@@ -78,12 +83,12 @@ model Invitation {
 }
 
 model EmailOtp {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   email     String
   codeHash  String
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([email, expiresAt])
 }
@@ -98,29 +103,112 @@ model Session {
 }
 
 model UserPreference {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  identity        String?
-  skillDirections String[] @default([])
-  level           String?
-  topics          String[]
-  readingMinutes  Int?
-  learningGoals   String[] @default([])
-  morningTime     String?
-  eveningTime     String?
-  timezone        String   @default("Asia/Shanghai")
-  morningEnabled  Boolean  @default(true)
-  eveningEnabled  Boolean  @default(true)
-  weeklyEnabled   Boolean  @default(true)
-  weeklyDay       Int      @default(0)
-  emailEnabled    Boolean  @default(true)
-  itemsPerDigest  Int      @default(10)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  identity             String?
+  skillDirections      String[] @default([])
+  level                String?
+  topics               String[]
+  readingMinutes       Int?
+  learningGoals        String[] @default([])
+  morningTime          String?
+  eveningTime          String?
+  timezone             String   @default("Asia/Shanghai")
+  morningEnabled       Boolean  @default(true)
+  eveningEnabled       Boolean  @default(true)
+  weeklyEnabled        Boolean  @default(true)
+  weeklyDay            Int      @default(0)
+  emailEnabled         Boolean  @default(true)
+  itemsPerDigest       Int      @default(10)
+  pushEnabled          Boolean  @default(false)
+  dailyLearningEnabled Boolean  @default(true)
+  dailyLearningTime    String   @default("07:30")
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DeviceSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  platform  String   @default("web")
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+}
+
+model BehaviorEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String?
+  eventId    String?
+  action     String
+  topic      String?
+  value      Float    @default(1)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, topic, action])
+}
+
+model LearningPath {
+  id           String         @id @default(cuid())
+  userId       String
+  title        String
+  goal         String
+  level        String
+  topics       String[]
+  outline      Json
+  progress     Int            @default(0)
+  active       Boolean        @default(true)
+  modelVersion String         @default("rules-v1")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks        LearningTask[]
+
+  @@index([userId, active])
+}
+
+model LearningTask {
+  id               String        @id @default(cuid())
+  userId           String
+  pathId           String?
+  eventId          String?
+  title            String
+  description      String
+  reason           String?
+  estimatedMinutes Int           @default(15)
+  scheduledFor     DateTime
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path             LearningPath? @relation(fields: [pathId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+}
+
+model ReportExport {
+  id        String   @id @default(cuid())
+  userId    String
+  digestId  String?
+  template  String
+  format    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Digest {
-  id          String     @id @default(cuid())
-  key         String     @unique
+  id          String          @id @default(cuid())
+  key         String          @unique
   userId      String?
   type        DigestType
   title       String
@@ -128,25 +216,25 @@ model Digest {
   content     Json
   periodStart DateTime
   periodEnd   DateTime
-  createdAt   DateTime   @default(now())
-  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  user        User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries  EmailDelivery[]
 
   @@index([userId, type, createdAt])
 }
 
 model EmailDelivery {
-  id          String         @id @default(cuid())
-  digestId    String
-  userId      String
-  recipient   String
-  status      DeliveryStatus
-  providerId  String?
-  error       String?
-  sentAt      DateTime?
-  createdAt   DateTime       @default(now())
-  digest      Digest         @relation(fields: [digestId], references: [id], onDelete: Cascade)
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  digestId   String
+  userId     String
+  recipient  String
+  status     DeliveryStatus
+  providerId String?
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime       @default(now())
+  digest     Digest         @relation(fields: [digestId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([digestId, userId])
   @@index([status, createdAt])
@@ -186,21 +274,21 @@ model RawDocument {
 }
 
 model Event {
-  id         String          @id @default(cuid())
-  title      String
-  clusterKey String          @unique
-  topic      String?
-  type       String
-  importance Float           @default(0.5)
-  createdAt  DateTime        @default(now())
-  documents  EventDocument[]
-  analyses   Analysis[]
-  feedItems  FeedItem[]
-  mentions   EntityMention[]
-  timeline   EventTimeline[]
+  id                String          @id @default(cuid())
+  title             String
+  clusterKey        String          @unique
+  topic             String?
+  type              String
+  importance        Float           @default(0.5)
+  createdAt         DateTime        @default(now())
+  documents         EventDocument[]
+  analyses          Analysis[]
+  feedItems         FeedItem[]
+  mentions          EntityMention[]
+  timeline          EventTimeline[]
   outgoingRelations EventRelation[] @relation("EventFrom")
   incomingRelations EventRelation[] @relation("EventTo")
-  alerts     AlertDelivery[]
+  alerts            AlertDelivery[]
 }
 
 model EventDocument {
@@ -213,25 +301,25 @@ model EventDocument {
 }
 
 model Analysis {
-  id           String       @id @default(cuid())
-  eventId      String
-  summary      String
-  whyImportant String?
-  impact       String?
-  developerImpact String?
-  learnerAdvice String?
-  advice       String?
-  facts        String?
-  predictions  String?
+  id                String       @id @default(cuid())
+  eventId           String
+  summary           String
+  whyImportant      String?
+  impact            String?
+  developerImpact   String?
+  learnerAdvice     String?
+  advice            String?
+  facts             String?
+  predictions       String?
   verificationNotes String?
-  confidence   Float
-  status       ReviewStatus @default(PENDING_REVIEW)
-  modelVersion String
-  verifierModel String?
-  promptVersion String @default("day5-v1")
-  analyzedAt   DateTime     @default(now())
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  evidence     Evidence[]
+  confidence        Float
+  status            ReviewStatus @default(PENDING_REVIEW)
+  modelVersion      String
+  verifierModel     String?
+  promptVersion     String       @default("day5-v1")
+  analyzedAt        DateTime     @default(now())
+  event             Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  evidence          Evidence[]
 }
 
 model Evidence {
@@ -288,14 +376,14 @@ model Feedback {
 }
 
 model Entity {
-  id          String       @id @default(cuid())
+  id          String          @id @default(cuid())
   type        EntityType
   name        String
   normalized  String
   description String?
   metadata    Json?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   mentions    EntityMention[]
   aliases     EntityAlias[]
   embeddings  Embedding[]
@@ -315,13 +403,13 @@ model EntityAlias {
 }
 
 model EntityMention {
-  entityId  String
-  eventId   String
+  entityId   String
+  eventId    String
   documentId String?
-  context   String?
-  entity    Entity       @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  document  RawDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  context    String?
+  entity     Entity       @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  event      Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  document   RawDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   @@id([entityId, eventId])
   @@index([eventId])
@@ -343,69 +431,69 @@ model EventRelation {
   fromEventId String
   toEventId   String
   relation    String
-  confidence  Float    @default(0.5)
-  fromEvent   Event    @relation("EventFrom", fields: [fromEventId], references: [id], onDelete: Cascade)
-  toEvent     Event    @relation("EventTo", fields: [toEventId], references: [id], onDelete: Cascade)
+  confidence  Float  @default(0.5)
+  fromEvent   Event  @relation("EventFrom", fields: [fromEventId], references: [id], onDelete: Cascade)
+  toEvent     Event  @relation("EventTo", fields: [toEventId], references: [id], onDelete: Cascade)
 
   @@id([fromEventId, toEventId])
 }
 
 model IndustryNode {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   name      String
-  slug      String   @unique
+  slug      String         @unique
   parentId  String?
-  sortOrder Int      @default(0)
-  parent    IndustryNode? @relation("IndustryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  sortOrder Int            @default(0)
+  parent    IndustryNode?  @relation("IndustryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children  IndustryNode[] @relation("IndustryTree")
 
   @@index([parentId, sortOrder])
 }
 
 model KeywordSubscription {
-  id          String   @id @default(cuid())
-  userId      String
-  keyword     String
-  normalized  String
-  enabled     Boolean  @default(true)
-  realtime    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alerts      AlertDelivery[]
+  id         String          @id @default(cuid())
+  userId     String
+  keyword    String
+  normalized String
+  enabled    Boolean         @default(true)
+  realtime   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts     AlertDelivery[]
 
   @@unique([userId, normalized])
   @@index([normalized, enabled])
 }
 
 model AlertDelivery {
-  id          String      @id @default(cuid())
-  userId      String
-  eventId     String
-  keywordId   String?
-  status      AlertStatus @default(PENDING)
-  providerId  String?
-  error       String?
-  sentAt      DateTime?
-  createdAt   DateTime    @default(now())
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  keyword     KeywordSubscription? @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  id         String               @id @default(cuid())
+  userId     String
+  eventId    String
+  keywordId  String?
+  status     AlertStatus          @default(PENDING)
+  providerId String?
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime             @default(now())
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event      Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  keyword    KeywordSubscription? @relation(fields: [keywordId], references: [id], onDelete: SetNull)
 
   @@unique([userId, eventId, keywordId])
   @@index([status, createdAt])
 }
 
 model Embedding {
-  id         String   @id @default(cuid())
-  documentId String?
-  entityId   String?
-  contentHash String  @unique
-  model      String
-  dimensions Int
-  vector     Unsupported("vector(1024)")
-  createdAt  DateTime @default(now())
-  document   RawDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  entity     Entity?      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  id          String                      @id @default(cuid())
+  documentId  String?
+  entityId    String?
+  contentHash String                      @unique
+  model       String
+  dimensions  Int
+  vector      Unsupported("vector(1024)")
+  createdAt   DateTime                    @default(now())
+  document    RawDocument?                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  entity      Entity?                     @relation(fields: [entityId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
   @@index([entityId])
