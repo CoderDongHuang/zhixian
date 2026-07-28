@@ -23,6 +23,8 @@ jobs:
           npm run digest:send:evening
           npm run digest:send:weekly
           npm run alerts:keywords
+      - name: Retry due mobile pushes
+        run: npm run push:send
       - name: Send failure alert
         if: failure()
         run: |
@@ -38,3 +40,6 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       APP_URL: ${{ secrets.APP_URL }}
       ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+      VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}

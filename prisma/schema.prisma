@@ -53,24 +53,33 @@ enum AlertStatus {
   FAILED
 }
 
+enum PushDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  EXPIRED
+}
+
 model User {
-  id            String                @id @default(cuid())
-  email         String?               @unique
-  createdAt     DateTime              @default(now())
-  preference    UserPreference?
-  bookmarks     Bookmark[]
-  reads         ReadHistory[]
-  feedback      Feedback[]
-  sessions      Session[]
-  digests       Digest[]
-  deliveries    EmailDelivery[]
-  keywords      KeywordSubscription[]
-  alerts        AlertDelivery[]
-  devices       DeviceSubscription[]
-  behaviors     BehaviorEvent[]
-  learningPaths LearningPath[]
-  learningTasks LearningTask[]
-  exports       ReportExport[]
+  id             String                @id @default(cuid())
+  email          String?               @unique
+  createdAt      DateTime              @default(now())
+  preference     UserPreference?
+  bookmarks      Bookmark[]
+  reads          ReadHistory[]
+  feedback       Feedback[]
+  sessions       Session[]
+  digests        Digest[]
+  deliveries     EmailDelivery[]
+  keywords       KeywordSubscription[]
+  alerts         AlertDelivery[]
+  devices        DeviceSubscription[]
+  behaviors      BehaviorEvent[]
+  learningPaths  LearningPath[]
+  learningTasks  LearningTask[]
+  exports        ReportExport[]
+  pushDeliveries PushDelivery[]
 }
 
 model Invitation {
@@ -207,21 +216,45 @@ model ReportExport {
 }
 
 model Digest {
-  id          String          @id @default(cuid())
-  key         String          @unique
-  userId      String?
-  type        DigestType
-  title       String
-  overview    String
-  content     Json
-  periodStart DateTime
-  periodEnd   DateTime
-  createdAt   DateTime        @default(now())
-  user        User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deliveries  EmailDelivery[]
+  id             String          @id @default(cuid())
+  key            String          @unique
+  userId         String?
+  type           DigestType
+  title          String
+  overview       String
+  content        Json
+  periodStart    DateTime
+  periodEnd      DateTime
+  createdAt      DateTime        @default(now())
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries     EmailDelivery[]
+  pushDeliveries PushDelivery[]
 
   @@index([userId, type, createdAt])
   @@index([createdAt])
+}
+
+model PushDelivery {
+  id            String             @id @default(cuid())
+  userId        String
+  digestId      String
+  deviceId      String
+  endpointHash  String
+  status        PushDeliveryStatus @default(PENDING)
+  retryCount    Int                @default(0)
+  providerId    String?
+  error         String?
+  nextAttemptAt DateTime?
+  lastAttemptAt DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  digest        Digest             @relation(fields: [digestId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, digestId])
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt])
 }
 
 model EmailDelivery {
