@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS "WechatIdentity" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "appId" TEXT NOT NULL, "openId" TEXT NOT NULL, "unionId" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE UNIQUE INDEX IF NOT EXISTS "WechatIdentity_appId_openId_key" ON "WechatIdentity"("appId", "openId");
+CREATE INDEX IF NOT EXISTS "WechatIdentity_unionId_idx" ON "WechatIdentity"("unionId");
+CREATE INDEX IF NOT EXISTS "WechatIdentity_userId_idx" ON "WechatIdentity"("userId");
+CREATE TABLE IF NOT EXISTS "MiniSession" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "deviceId" TEXT NOT NULL, "refreshTokenHash" TEXT NOT NULL, "expiresAt" TIMESTAMP(3) NOT NULL, "revokedAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE UNIQUE INDEX IF NOT EXISTS "MiniSession_refreshTokenHash_key" ON "MiniSession"("refreshTokenHash");
+CREATE UNIQUE INDEX IF NOT EXISTS "MiniSession_userId_deviceId_key" ON "MiniSession"("userId", "deviceId");
+CREATE INDEX IF NOT EXISTS "MiniSession_expiresAt_revokedAt_idx" ON "MiniSession"("expiresAt", "revokedAt");
+CREATE TABLE IF NOT EXISTS "SyncState" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "resource" TEXT NOT NULL, "resourceId" TEXT NOT NULL, "value" JSONB NOT NULL, "clientChangedAt" TIMESTAMP(3) NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE UNIQUE INDEX IF NOT EXISTS "SyncState_userId_resource_resourceId_key" ON "SyncState"("userId", "resource", "resourceId");
+CREATE TABLE IF NOT EXISTS "SyncChange" ("sequence" BIGSERIAL PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "resource" TEXT NOT NULL, "resourceId" TEXT NOT NULL, "value" JSONB NOT NULL, "changedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS "SyncChange_userId_sequence_idx" ON "SyncChange"("userId", "sequence");
+CREATE TABLE IF NOT EXISTS "SyncRequest" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "deviceId" TEXT NOT NULL, "idempotencyKey" TEXT NOT NULL, "response" JSONB NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE UNIQUE INDEX IF NOT EXISTS "SyncRequest_userId_deviceId_idempotencyKey_key" ON "SyncRequest"("userId", "deviceId", "idempotencyKey");
+CREATE INDEX IF NOT EXISTS "SyncRequest_createdAt_idx" ON "SyncRequest"("createdAt");

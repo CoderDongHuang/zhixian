@@ -8,7 +8,11 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
   const task = await prisma.learningTask.findFirst({ where: { id, userId: user.id } });
   if (!task) return NextResponse.json({ error: "任务不存在" }, { status: 404 });
   const completedAt = task.completedAt ? null : new Date();
-  await prisma.learningTask.update({ where: { id }, data: { completedAt } });
+  await prisma.$transaction([
+    prisma.learningTask.update({ where: { id }, data: { completedAt } }),
+    prisma.syncState.upsert({ where: { userId_resource_resourceId: { userId: user.id, resource: "learning_task", resourceId: id } }, update: { value: { completed: Boolean(completedAt) }, clientChangedAt: new Date() }, create: { userId: user.id, resource: "learning_task", resourceId: id, value: { completed: Boolean(completedAt) }, clientChangedAt: new Date() } }),
+    prisma.syncChange.create({ data: { userId: user.id, resource: "learning_task", resourceId: id, value: { completed: Boolean(completedAt) } } }),
+  ]);
   if (task.pathId) {
     const [all, done] = await Promise.all([
       prisma.learningTask.count({ where: { pathId: task.pathId } }),

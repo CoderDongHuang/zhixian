@@ -44,4 +44,4 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 1. PowerShell 执行 `Get-Content -Raw scripts/upgrade-v03.sql | node --env-file-if-exists=.env.local scripts/apply-sql.mjs` 升级数据库。
 2. 生成 VAPID 密钥并配置 `VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`，定时运行 `npm run push:send`。
 3. 在微信公众平台注册小程序，将 `miniprogram/project.config.json` 的 `appid` 和 `miniprogram/app.js` 的域名改为生产值。
-4. 在服务端与小程序请求头中配置相同的 `MINIPROGRAM_API_TOKEN`，并在微信后台加入 HTTPS request 合法域名。
+4. 在服务端配置 `WECHAT_APP_ID`、`WECHAT_APP_SECRET` 和 `MINI_TOKEN_SECRET`，并在微信后台加入 HTTPS request 合法域名。小程序通过 `wx.login` 获取自己的短期令牌，不需要静态 API Token。

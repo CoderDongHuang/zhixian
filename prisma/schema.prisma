@@ -80,6 +80,79 @@ model User {
   learningTasks  LearningTask[]
   exports        ReportExport[]
   pushDeliveries PushDelivery[]
+  wechatIdentities WechatIdentity[]
+  miniSessions     MiniSession[]
+  syncStates       SyncState[]
+  syncChanges      SyncChange[]
+  syncRequests     SyncRequest[]
+}
+
+model WechatIdentity {
+  id        String   @id @default(cuid())
+  userId    String
+  appId     String
+  openId    String
+  unionId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, openId])
+  @@index([unionId])
+  @@index([userId])
+}
+
+model MiniSession {
+  id               String    @id @default(cuid())
+  userId           String
+  deviceId         String
+  refreshTokenHash String    @unique
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([expiresAt, revokedAt])
+}
+
+model SyncState {
+  id              String   @id @default(cuid())
+  userId          String
+  resource        String
+  resourceId      String
+  value           Json
+  clientChangedAt DateTime
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resource, resourceId])
+}
+
+model SyncChange {
+  sequence   BigInt   @id @default(autoincrement())
+  userId     String
+  resource   String
+  resourceId String
+  value      Json
+  changedAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sequence])
+}
+
+model SyncRequest {
+  id             String   @id @default(cuid())
+  userId         String
+  deviceId       String
+  idempotencyKey String
+  response       Json
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId, idempotencyKey])
+  @@index([createdAt])
 }
 
 model Invitation {

@@ -1,1 +1,6 @@
-const app=getApp();Page({data:{report:null},onLoad({id}){wx.request({url:`${app.globalData.apiBase}/api/mini/reports/${id}`,header:{"x-mini-token":app.globalData.apiToken},success:({data})=>this.setData({report:data})})},onShareAppMessage(){return{title:this.data.report?.title||"知线报告试读",path:`/pages/report/report?id=${this.data.report?.id}`}}})
+const app = getApp();
+Page({
+  data: { report: null },
+  onLoad({ id }) { app.request({ url: `/api/mini/reports/${id}` }).then(({ data }) => this.setData({ report: data })); },
+  onShareAppMessage() { return { title: this.data.report?.title || "知线报告试读", path: `/pages/report/report?id=${this.data.report?.id}` }; },
+});
