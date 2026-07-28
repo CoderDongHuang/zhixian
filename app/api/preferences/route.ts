@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { learningPreferenceFingerprint } from "@/lib/learning";
 
 const allowedTopics = new Set(["AI 行业", "大模型", "GitHub 开源项目"]);
 const allowedCounts = new Set([5, 10, 20]);
@@ -24,10 +25,14 @@ export async function POST(request: Request) {
   const dailyLearningTime = timePattern.test(body?.dailyLearningTime) ? body.dailyLearningTime : "07:30";
   const delivery = { morningTime, eveningTime, timezone: "Asia/Shanghai", emailEnabled: Boolean(body?.emailEnabled), morningEnabled: Boolean(body?.morningEnabled), eveningEnabled: Boolean(body?.eveningEnabled), weeklyEnabled: Boolean(body?.weeklyEnabled), weeklyDay, dailyLearningEnabled: Boolean(body?.dailyLearningEnabled), dailyLearningTime };
 
+  const previous = await prisma.userPreference.findUnique({ where: { userId: user.id } });
+  const learningPreference = { identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics };
   await prisma.userPreference.upsert({
     where: { userId: user.id },
     update: { identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics, itemsPerDigest, ...delivery },
     create: { userId: user.id, identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics, itemsPerDigest, ...delivery },
   });
-  return NextResponse.json({ ok: true });
+  const learningChanged = Boolean(previous && learningPreferenceFingerprint(previous) !== learningPreferenceFingerprint(learningPreference));
+  if (learningChanged) await prisma.learningPath.updateMany({ where: { userId: user.id, active: true }, data: { stale: true } });
+  return NextResponse.json({ ok: true, learningChanged });
 }

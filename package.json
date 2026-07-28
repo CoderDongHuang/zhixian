@@ -8,6 +8,7 @@
     "test:e2e": "node tests/smoke.mjs",
     "test:performance": "node tests/performance.mjs",
     "test:push": "node --test tests/push-delivery.test.mjs",
+    "test:learning": "node --experimental-strip-types --test tests/learning-ai.test.ts",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
@@ -34,6 +35,7 @@
   "dependencies": {
     "@prisma/client": "^6.12.0",
     "@types/web-push": "^3.6.4",
+    "ajv": "^8.20.0",
     "fast-xml-parser": "^5.10.1",
     "next": "^15.4.0",
     "pg": "^8.22.0",
