@@ -1,0 +1,1 @@
+.shell{padding:28rpx}.title{font-size:34rpx;font-weight:600;margin:24rpx 0 16rpx}.row{display:flex;gap:12rpx;align-items:center}input{border:1px solid #d8dfdc;padding:18rpx;margin-bottom:16rpx;background:#fff}.row input{flex:1}.status,.muted{color:#66736e;margin:18rpx 0}button{margin:16rpx 0}

@@ -9,6 +9,7 @@
     "test:performance": "node tests/performance.mjs",
     "test:push": "node --test tests/push-delivery.test.mjs",
     "test:learning": "node --experimental-strip-types --test tests/learning-ai.test.ts",
+    "test:wechat": "node --experimental-strip-types --test tests/wechat-sync.test.ts",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
