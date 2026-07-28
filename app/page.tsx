@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import { getTopicAffinity, recommendationScore } from "@/lib/recommendations";
 import { MobileTools } from "./mobile-tools";
+import { getCachedFeed } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -15,12 +15,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const activeTopic = topics.includes(requestedTopic ?? "") ? requestedTopic! : "全部";
   const limit = user?.preference?.itemsPerDigest ?? 10;
   const preferredTopics = new Set(user?.preference?.topics ?? []);
-  const affinity = user ? await getTopicAffinity(user.id) : new Map<string, number>();
-  const items = await prisma.feedItem.findMany({
-    where: activeTopic === "全部" ? undefined : { event: { topic: activeTopic } },
-    include: { event: { include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 }, documents: { include: { document: { include: { source: true } } } } } } },
-    orderBy: [{ publishedAt: "desc" }], take: 50,
-  });
+  const [affinity, items] = await Promise.all([
+    user ? getTopicAffinity(user.id) : Promise.resolve(new Map<string, number>()),
+    getCachedFeed(activeTopic === "全部" ? null : activeTopic),
+  ]);
   const ranked = items
     .map((item) => ({ ...item, personalizedRank: recommendationScore(item.rank, item.event.topic, preferredTopics, affinity) }))
     .sort((a, b) => b.personalizedRank - a.personalizedRank)
