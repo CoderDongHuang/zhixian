@@ -105,6 +105,11 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .learning-shell > header { padding-bottom: 28px; border-bottom: 1px solid #dfe3e8; }
 .progress { height: 8px; max-width: 420px; overflow: hidden; background: #e4e8e6; border-radius: 4px; }
 .progress span { display: block; height: 100%; background: #176b4d; }
+.learning-meta { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; color: #667085; font-size: 13px; }
+.learning-reason { color: #4b5565; max-width: 720px; line-height: 1.7; }
+.learning-notice { padding: 12px 14px; background: #fff4e5; border-left: 3px solid #b56a00; color: #7a4500; }
+.regenerate-control { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+.regenerate-control small { color: #176b4d; }
 .today-task { display: flex; justify-content: space-between; align-items: center; gap: 28px; padding: 28px 0; border-bottom: 1px solid #dfe3e8; }
 .today-task > div > span, .learning-phases article > span { color: #176b4d; font-weight: 700; font-size: 13px; }
 .learning-phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
