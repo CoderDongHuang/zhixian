@@ -510,6 +510,9 @@ model Entity {
   mentions    EntityMention[]
   aliases     EntityAlias[]
   embeddings  Embedding[]
+  outgoingRelations EntityRelation[] @relation("EntityFrom")
+  incomingRelations EntityRelation[] @relation("EntityTo")
+  mergesAsTarget     EntityMerge[] @relation("EntityMergeTarget")
 
   @@unique([type, normalized])
   @@index([type, name])
@@ -520,10 +523,42 @@ model EntityAlias {
   id       String @id @default(cuid())
   entityId String
   alias    String
+  normalized String
   entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
 
-  @@unique([entityId, alias])
+  @@unique([entityId, normalized])
   @@index([alias])
+}
+
+model EntityRelation {
+  fromEntityId String
+  toEntityId   String
+  relation     String
+  confidence   Float    @default(0.5)
+  evidence     String?
+  sourceUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  fromEntity   Entity   @relation("EntityFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity     Entity   @relation("EntityTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+
+  @@id([fromEntityId, toEntityId, relation])
+  @@index([relation, confidence])
+  @@index([toEntityId])
+}
+
+model EntityMerge {
+  id             String   @id @default(cuid())
+  sourceEntityId String
+  sourceName     String
+  targetEntityId String
+  mergedByUserId String
+  reason         String?
+  createdAt      DateTime @default(now())
+  targetEntity   Entity   @relation("EntityMergeTarget", fields: [targetEntityId], references: [id], onDelete: Restrict)
+
+  @@index([targetEntityId, createdAt])
+  @@index([mergedByUserId, createdAt])
 }
 
 model EntityMention {

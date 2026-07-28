@@ -1,0 +1,14 @@
+ALTER TABLE "EntityAlias" ADD COLUMN IF NOT EXISTS "normalized" TEXT;
+UPDATE "EntityAlias" SET "normalized" = lower(trim("alias")) WHERE "normalized" IS NULL;
+DELETE FROM "EntityAlias" a USING "EntityAlias" b WHERE a."entityId" = b."entityId" AND a."normalized" = b."normalized" AND a."id" > b."id";
+ALTER TABLE "EntityAlias" ALTER COLUMN "normalized" SET NOT NULL;
+DROP INDEX IF EXISTS "EntityAlias_entityId_alias_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "EntityAlias_entityId_normalized_key" ON "EntityAlias"("entityId", "normalized");
+CREATE TABLE IF NOT EXISTS "EntityRelation" ("fromEntityId" TEXT NOT NULL REFERENCES "Entity"("id") ON DELETE CASCADE, "toEntityId" TEXT NOT NULL REFERENCES "Entity"("id") ON DELETE CASCADE, "relation" TEXT NOT NULL, "confidence" DOUBLE PRECISION NOT NULL DEFAULT 0.5, "evidence" TEXT, "sourceUrl" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY ("fromEntityId", "toEntityId", "relation"));
+CREATE INDEX IF NOT EXISTS "EntityRelation_relation_confidence_idx" ON "EntityRelation"("relation", "confidence");
+CREATE INDEX IF NOT EXISTS "EntityRelation_toEntityId_idx" ON "EntityRelation"("toEntityId");
+CREATE TABLE IF NOT EXISTS "EntityMerge" ("id" TEXT PRIMARY KEY, "sourceEntityId" TEXT NOT NULL, "sourceName" TEXT NOT NULL, "targetEntityId" TEXT NOT NULL REFERENCES "Entity"("id") ON DELETE RESTRICT, "mergedByUserId" TEXT NOT NULL, "reason" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS "EntityMerge_targetEntityId_createdAt_idx" ON "EntityMerge"("targetEntityId", "createdAt");
+CREATE INDEX IF NOT EXISTS "EntityMerge_mergedByUserId_createdAt_idx" ON "EntityMerge"("mergedByUserId", "createdAt");
+INSERT INTO "EventRelation" ("fromEventId", "toEventId", "relation", "confidence") SELECT DISTINCT m1."eventId", m2."eventId", 'SHARED_ENTITY_FOLLOW_UP', 0.6 FROM "EntityMention" m1 JOIN "EntityMention" m2 ON m1."entityId" = m2."entityId" AND m1."eventId" <> m2."eventId" JOIN "Event" e1 ON e1."id" = m1."eventId" JOIN "Event" e2 ON e2."id" = m2."eventId" WHERE e1."createdAt" < e2."createdAt" ON CONFLICT ("fromEventId", "toEventId") DO NOTHING;
+WITH ordered AS (SELECT "id", lag("id") OVER (PARTITION BY "topic" ORDER BY "createdAt") AS previous FROM "Event" WHERE "topic" IS NOT NULL) INSERT INTO "EventRelation" ("fromEventId", "toEventId", "relation", "confidence") SELECT previous, "id", 'SHARED_TOPIC_FOLLOW_UP', 0.55 FROM ordered WHERE previous IS NOT NULL ON CONFLICT ("fromEventId", "toEventId") DO NOTHING;

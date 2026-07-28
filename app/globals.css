@@ -135,3 +135,27 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .review-card h2 { line-height: 1.5; }
 .review-card li { margin: 10px 0; line-height: 1.6; }
 .review-actions form { display: flex; gap: 10px; }
+.subnav { display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid #dfe3e8; }
+.subnav a, .entity-links a { color: #176b4d; font-weight: 700; text-decoration: none; }
+.alias-list, .entity-links { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.alias-list span, .entity-links a { padding: 6px 9px; border: 1px solid #cdd8d3; border-radius: 5px; background: #f4f8f6; }
+.relation-filters, .search-form { display: flex; align-items: flex-end; gap: 12px; padding: 22px 0; border-bottom: 1px solid #dfe3e8; }
+.relation-filters label { display: grid; gap: 6px; color: #667085; font-size: 13px; }
+.search-form input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid #cdd3da; border-radius: 6px; font: inherit; }
+.relation-list { display: grid; }
+.relation-list article { display: grid; grid-template-columns: minmax(120px, auto) 1fr auto; align-items: baseline; gap: 8px 16px; padding: 18px 0; border-bottom: 1px solid #e4e7eb; }
+.relation-list article > span { color: #176b4d; font-size: 12px; font-weight: 700; }
+.relation-list article > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.relation-list article a { font-weight: 700; text-decoration: none; }
+.relation-list article small { color: #667085; }
+.relation-list article p { grid-column: 2 / -1; margin: 0; color: #4b5565; }
+.entity-event, .timeline-row { padding: 16px 0; border-bottom: 1px solid #e4e7eb; }
+.entity-event > div { display: flex; gap: 12px; color: #667085; font-size: 13px; }
+.entity-event h3 { margin: 8px 0; }
+.timeline-row { display: grid; grid-template-columns: 110px 1fr; gap: 18px; }
+.timeline-row time { color: #667085; }
+@media (max-width: 640px) { .relation-filters, .search-form { align-items: stretch; flex-direction: column; } .relation-filters label, .relation-filters select, .search-form input, .search-form button { width: 100%; } .relation-list article { grid-template-columns: 1fr; } .relation-list article p { grid-column: 1; } .timeline-row { grid-template-columns: 1fr; gap: 6px; } }
+.merge-form { display: grid; gap: 18px; padding: 24px 0; max-width: 680px; }
+.merge-form label { display: grid; gap: 7px; font-weight: 600; }
+.merge-form select, .merge-form input { width: 100%; padding: 10px; border: 1px solid #cdd3da; border-radius: 6px; background: white; font: inherit; }
+.merge-form button { justify-self: start; }
