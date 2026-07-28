@@ -46,7 +46,11 @@ for (const subscription of subscriptions) {
     markSent: ({ providerId, sentAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", providerId, sentAt, error: null, nextAttemptAt: null } }),
     markFailed: ({ error, nextAttemptAt, attemptedAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", error, nextAttemptAt, lastAttemptAt: attemptedAt } }),
     markExpired: ({ error, attemptedAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "EXPIRED", error, nextAttemptAt: null, lastAttemptAt: attemptedAt } }),
-    invalidateDevice: () => prisma.deviceSubscription.deleteMany({ where: { id: subscription.id } }),
+    invalidateDevice: async () => {
+      await prisma.deviceSubscription.deleteMany({ where: { id: subscription.id } });
+      const remaining = await prisma.deviceSubscription.count({ where: { userId: subscription.userId } });
+      if (remaining === 0) await prisma.userPreference.update({ where: { userId: subscription.userId }, data: { pushEnabled: false } }).catch(() => undefined);
+    },
   });
   summary[outcome]++;
 }
