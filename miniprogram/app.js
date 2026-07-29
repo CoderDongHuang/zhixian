@@ -6,15 +6,16 @@ function randomId(prefix) {
 }
 
 App({
-  globalData: { apiBase: localConfig.apiBase || "https://zhixian.asia", accessToken: "", accessExpiresAt: 0, refreshToken: "", deviceId: "" },
+  globalData: { apiBase: localConfig.apiBase || "https://zhixian.asia", accessToken: "", accessExpiresAt: 0, refreshToken: "", deviceId: "", account: null },
   onLaunch() {
     this.globalData.deviceId = wx.getStorageSync("deviceId") || randomId("wx");
     this.globalData.refreshToken = wx.getStorageSync("refreshToken") || "";
+    this.globalData.account = wx.getStorageSync("miniAccount") || null;
     wx.setStorageSync("deviceId", this.globalData.deviceId);
-    this.authenticate().then(() => this.pullSync());
+    this.authenticate().then(() => this.pullSync()).catch(() => {});
   },
   authenticate() {
-    if (this.globalData.accessToken && this.globalData.accessExpiresAt > Date.now() + 30000) return Promise.resolve();
+    if (this.globalData.accessToken && this.globalData.accessExpiresAt > Date.now() + 30000) return Promise.resolve({ account: this.globalData.account });
     if (this.authPromise) return this.authPromise;
     this.authPromise = new Promise((resolve, reject) => {
       const login = () => wx.login({ success: ({ code }) => wx.request({
@@ -32,7 +33,22 @@ App({
     this.globalData.accessExpiresAt = Date.now() + data.expiresIn * 1000;
     this.globalData.refreshToken = data.refreshToken;
     wx.setStorageSync("refreshToken", data.refreshToken);
+    if (data.account) this.setAccount(data.account);
     done(data);
+  },
+  setAccount(account) {
+    this.globalData.account = account;
+    wx.setStorageSync("miniAccount", account);
+  },
+  resetSession() {
+    this.globalData.accessToken = "";
+    this.globalData.accessExpiresAt = 0;
+    this.globalData.refreshToken = "";
+    this.globalData.account = null;
+    this.authPromise = null;
+    wx.removeStorageSync("refreshToken");
+    wx.removeStorageSync("miniAccount");
+    wx.setStorageSync("syncCursor", "0");
   },
   request(options, retried) {
     return this.authenticate().then(() => new Promise((resolve, reject) => wx.request({

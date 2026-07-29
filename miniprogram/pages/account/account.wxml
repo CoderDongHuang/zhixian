@@ -1,1 +1,17 @@
-<view class="shell"><view class="title">账号绑定</view><input placeholder="已有账号邮箱" value="{{email}}" bindinput="setEmail"/><view class="row"><input placeholder="邮箱验证码" value="{{code}}" bindinput="setCode"/><button size="mini" bindtap="requestCode">获取验证码</button></view><button type="primary" bindtap="bindEmail">绑定已有账号</button><button bindtap="unbindEmail">解除绑定</button><view class="status">{{status}}</view><view class="title">学习同步</view><view class="muted">路线：{{learningTitle || '尚未生成'}}</view><view class="muted">最近任务：{{taskCount}} 个</view><button bindtap="refreshSync">立即同步</button></view>
+<view class="shell">
+  <view class="identity">
+    <view><view class="title">微信登录</view><view class="muted">{{loginStatus}}</view></view>
+    <button size="mini" bindtap="retryLogin">重新登录</button>
+  </view>
+  <view class="linked" wx:if="{{linked}}">已绑定：{{linkedEmail}}</view>
+  <view class="title">账号绑定</view>
+  <input placeholder="已有账号邮箱" value="{{email}}" bindinput="setEmail"/>
+  <view class="row"><input placeholder="邮箱验证码" value="{{code}}" bindinput="setCode"/><button size="mini" bindtap="requestCode">获取验证码</button></view>
+  <button type="primary" bindtap="bindEmail">绑定已有账号</button>
+  <button wx:if="{{linked}}" bindtap="unbindEmail">解除绑定</button>
+  <view class="status">{{status}}</view>
+  <view class="title">学习同步</view>
+  <view class="muted">路线：{{learningTitle || '尚未生成'}}</view>
+  <view class="muted">最近任务：{{taskCount}} 个</view>
+  <button bindtap="refreshSync">立即同步</button>
+</view>
