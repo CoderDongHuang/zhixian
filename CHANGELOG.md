@@ -8,3 +8,4 @@
 - Added WeChat identity, rotating sessions, account binding, and multi-device synchronization.
 - Added entity details, relationship browsing, search links, and audited entity merging.
 - Added isolated Playwright coverage, GitHub quality gates, release documentation, and the React Native app foundation.
+- Made mini-program WeChat login and account binding state visible, retryable, and covered by client regression tests.
