@@ -1,16 +1,20 @@
 {
   "name": "ai-industry-research-platform",
   "private": true,
+  "version": "0.3.1",
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
-    "test:e2e": "node tests/smoke.mjs",
+    "test:smoke": "node tests/smoke.mjs",
+    "test:e2e": "playwright test",
     "test:performance": "node tests/performance.mjs",
     "test:push": "node --test tests/push-delivery.test.mjs",
     "test:learning": "node --experimental-strip-types --test tests/learning-ai.test.ts",
     "test:wechat": "node --experimental-strip-types --test tests/wechat-sync.test.ts",
     "test:entities": "node --experimental-strip-types --test tests/entities.test.ts",
+    "test:unit": "npm run test:push && npm run test:learning && npm run test:wechat && npm run test:entities",
+    "monitor:production": "node scripts/monitor-production.mjs",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "prisma generate",
@@ -46,6 +50,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

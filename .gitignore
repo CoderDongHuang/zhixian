@@ -9,3 +9,5 @@ miniprogram/project.private.config.json
 *.log
 *.tsbuildinfo
 .vercel
+playwright-report/
+test-results/

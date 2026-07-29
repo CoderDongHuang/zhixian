@@ -1,0 +1,31 @@
+name: Production monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/monitor-production.mjs
+        env:
+          MONITOR_URL: https://zhixian.asia
+          MONITOR_THRESHOLD_MS: 3500
+      - name: Send failure alert
+        if: failure()
+        run: |
+          curl --fail-with-body -sS https://api.resend.com/emails \
+            -H "Authorization: Bearer $EMAIL_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"知线监控 <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"知线生产监控失败\",\"text\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+        env:
+          EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}

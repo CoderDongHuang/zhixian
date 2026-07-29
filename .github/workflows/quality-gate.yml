@@ -1,0 +1,57 @@
+name: V0.3.1 quality gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zhixian_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/zhixian_e2e
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/zhixian_e2e
+      AUTH_SECRET: e2e-auth-secret-at-least-24-characters
+      MINI_TOKEN_SECRET: e2e-mini-secret-at-least-24-characters
+      WECHAT_APP_ID: wx-e2e
+      WECHAT_APP_SECRET: e2e-secret
+      E2E_TEST_MODE: "true"
+      E2E_TEST_SECRET: e2e-local-secret
+      APP_URL: http://127.0.0.1:3100
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector'
+      - run: npx prisma db push --skip-generate
+      - run: npm run db:generate
+      - run: npm run test:unit
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
