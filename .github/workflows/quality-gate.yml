@@ -40,6 +40,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci
+        working-directory: mobile-app
+      - run: npm run typecheck
+        working-directory: mobile-app
       - run: npx playwright install --with-deps chromium
       - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector'
       - run: npx prisma db push --skip-generate
