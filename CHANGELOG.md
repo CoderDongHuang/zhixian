@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - Unreleased
+
+- Added the React Native app foundation with email OTP authentication and SecureStore token rotation.
+- Added synchronized feed, bookmarks, reading history, learning tasks, offline reading, Expo push registration, and speech playback.
+- Added native authentication and Expo push server endpoints plus mobile type checking in CI.
+
 ## 0.3.1 - 2026-07-29
 
 - Reduced public-page query cost and added production performance monitoring.

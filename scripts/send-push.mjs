@@ -5,12 +5,14 @@ import { MAX_PUSH_RETRIES, PUSH_CLAIM_TIMEOUT_MS, processClaimedPush } from "../
 
 const prisma = new PrismaClient();
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT = "mailto:admin@example.com", APP_URL = "http://127.0.0.1:3000" } = process.env;
-if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) throw new Error("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required");
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 const digest = await prisma.digest.findFirst({ orderBy: { createdAt: "desc" } });
 if (!digest) throw new Error("No digest available");
 const subscriptions = await prisma.deviceSubscription.findMany({ include: { user: { include: { preference: true } } } });
+if (subscriptions.some((item) => item.platform === "web")) {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) throw new Error("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required for web subscriptions");
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 const summary = { digestId: digest.id, subscriptions: subscriptions.length, eligible: 0, claimed: 0, sent: 0, skipped: 0, failed: 0, expired: 0 };
 const payload = JSON.stringify({ title: digest.title, body: digest.overview, url: `${APP_URL}/digests/${digest.id}` });
 
@@ -42,7 +44,13 @@ for (const subscription of subscriptions) {
   const outcome = await processClaimedPush({
     retryCount: claimed.retryCount,
     now,
-    send: () => webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, payload),
+    send: async () => {
+      if (subscription.platform === "web") return webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, payload);
+      const response = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ to: subscription.endpoint, title: digest.title, body: digest.overview, data: { url: `${APP_URL}/digests/${digest.id}`, digestId: digest.id } }) });
+      const result = await response.json();
+      if (!response.ok || result?.data?.status === "error") { const error = new Error(result?.data?.message || `Expo push failed (${response.status})`); error.statusCode = result?.data?.details?.error === "DeviceNotRegistered" ? 410 : response.status; throw error; }
+      return { providerId: result?.data?.id || null };
+    },
     markSent: ({ providerId, sentAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", providerId, sentAt, error: null, nextAttemptAt: null } }),
     markFailed: ({ error, nextAttemptAt, attemptedAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", error, nextAttemptAt, lastAttemptAt: attemptedAt } }),
     markExpired: ({ error, attemptedAt }) => prisma.pushDelivery.update({ where: { id: delivery.id }, data: { status: "EXPIRED", error, nextAttemptAt: null, lastAttemptAt: attemptedAt } }),
