@@ -1,4 +1,4 @@
-name: V0.3.1 quality gate
+name: V0.4 quality gate
 
 on:
   pull_request:

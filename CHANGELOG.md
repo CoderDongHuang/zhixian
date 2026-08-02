@@ -2,6 +2,7 @@
 
 ## V0.4 release candidate
 
+- Fixed production push-receipt and digest schedules after deploying the V0.4 schema, and added concurrency controls and an explicit schema-first release order.
 - Added EAS internal/production build automation, OTA publishing and rollback channels, branded native/store assets, privacy and store metadata, and a real-device acceptance matrix.
 - Added Expo push receipt verification, beta feedback, mobile stability metrics, Sentry source-map configuration, and an admin stability dashboard.
 - Updated vulnerable PostCSS and Sharp transitive dependencies while retaining the Expo SDK 54 compatibility baseline.
