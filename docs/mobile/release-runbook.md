@@ -28,4 +28,8 @@
 
 ## 数据库与推送任务
 
-部署 Prisma schema 后定时执行 `npm run push:receipts`，建议每 10 分钟一次。该任务核验 Expo receipt，标记失败交付并清理 `DeviceNotRegistered` 设备。
+1. 合并包含 Prisma schema 变更的版本后，先手动运行 `Production database schema deployment`。
+2. 确认 schema 部署成功后，再运行 `Digest delivery` 和 `Expo push receipts` 验证生产任务。
+3. Expo receipt 每 30 分钟核验一次，标记失败交付并清理 `DeviceNotRegistered` 设备。
+
+不要在 schema 部署前启用依赖新字段的定时任务，否则 Prisma 会以 `P2022` 失败并触发重复告警。

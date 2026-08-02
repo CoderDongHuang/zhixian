@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "*/15 * * * *"
 
+concurrency:
+  group: production-monitor
+  cancel-in-progress: true
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
@@ -24,7 +28,7 @@ jobs:
           curl --fail-with-body -sS https://api.resend.com/emails \
             -H "Authorization: Bearer $EMAIL_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"知线监控 <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"知线生产监控失败\",\"text\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
+            -d "{\"from\":\"Zhixian Monitor <$EMAIL_FROM>\",\"to\":[\"$ALERT_EMAIL_TO\"],\"subject\":\"Zhixian production monitor failed\",\"text\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}"
         env:
           EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}

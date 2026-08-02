@@ -1,10 +1,11 @@
-name: V0.2 database migration
+name: Production database schema deployment
 
 on:
   workflow_dispatch:
 
 jobs:
   migrate:
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
