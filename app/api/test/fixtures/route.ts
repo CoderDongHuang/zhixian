@@ -12,6 +12,15 @@ function allowed(request: Request) {
 
 async function cleanup() {
   await prisma.entityMerge.deleteMany({ where: { OR: [{ sourceEntityId: { in: ids.entities } }, { targetEntityId: { in: ids.entities } }] } });
+  await prisma.entityRelation.deleteMany({ where: { OR: [{ fromEntityId: { in: ids.entities } }, { toEntityId: { in: ids.entities } }] } });
+  await prisma.entityMention.deleteMany({ where: { OR: [{ entityId: { in: ids.entities } }, { eventId: { in: ids.events } }, { documentId: { in: ids.docs } }] } });
+  await prisma.eventRelation.deleteMany({ where: { OR: [{ fromEventId: { in: ids.events } }, { toEventId: { in: ids.events } }] } });
+  await prisma.eventTimeline.deleteMany({ where: { eventId: { in: ids.events } } });
+  await prisma.eventDocument.deleteMany({ where: { OR: [{ eventId: { in: ids.events } }, { documentId: { in: ids.docs } }] } });
+  await prisma.feedItem.deleteMany({ where: { id: { in: ids.feeds } } });
+  await prisma.analysis.deleteMany({ where: { eventId: { in: ids.events } } });
+  await prisma.learningTask.deleteMany({ where: { OR: [{ id: ids.task }, { pathId: ids.path }, { userId: { in: ids.users } }] } });
+  await prisma.learningPath.deleteMany({ where: { OR: [{ id: ids.path }, { userId: { in: ids.users } }] } });
   await prisma.user.deleteMany({ where: { id: { in: ids.users } } });
   await prisma.entity.deleteMany({ where: { id: { in: ids.entities } } });
   await prisma.event.deleteMany({ where: { id: { in: ids.events } } });

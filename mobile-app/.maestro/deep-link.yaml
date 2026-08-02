@@ -1,0 +1,5 @@
+appId: asia.zhixian.app
+name: Article deep link
+---
+- openLink: "zhixian://article/${MAESTRO_FEED_ITEM_ID}"
+- assertVisible: "深度阅读"

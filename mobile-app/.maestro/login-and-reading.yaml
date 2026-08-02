@@ -1,0 +1,20 @@
+appId: asia.zhixian.app
+name: Login and offline reading
+---
+- launchApp:
+    clearState: true
+- assertVisible: "登录正式 App"
+- tapOn: "邮箱"
+- inputText: "${MAESTRO_TEST_EMAIL}"
+- tapOn: "获取验证码"
+- assertVisible: "验证码已发送"
+- tapOn: "验证码"
+- inputText: "${MAESTRO_TEST_CODE}"
+- tapOn: "登录"
+- assertVisible: "信息流"
+- tapOn:
+    text: "阅读分析"
+    index: 0
+- assertVisible: "离线保存"
+- tapOn: "离线保存"
+- assertVisible: "已保存，可离线阅读"

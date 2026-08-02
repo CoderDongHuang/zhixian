@@ -11,3 +11,4 @@ miniprogram/project.private.config.json
 .vercel
 playwright-report/
 test-results/
+mobile-app/dist-*/

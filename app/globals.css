@@ -159,3 +159,11 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .merge-form label { display: grid; gap: 7px; font-weight: 600; }
 .merge-form select, .merge-form input { width: 100%; padding: 10px; border: 1px solid #cdd3da; border-radius: 6px; background: white; font: inherit; }
 .merge-form button { justify-self: start; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 24px 0 32px; }
+.stat-grid article { display: grid; gap: 6px; padding: 18px; border: 1px solid #dfe3e8; border-radius: 6px; background: white; }
+.stat-grid strong { font-size: 26px; color: #176b4d; }
+.stat-grid span { color: #667085; font-size: 13px; }
+.digest-card { padding: 18px 0; border-bottom: 1px solid #dfe3e8; }
+.digest-card p { line-height: 1.7; }
+.digest-card small { color: #667085; }
+@media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

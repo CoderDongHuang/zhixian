@@ -1,5 +1,16 @@
 # Changelog
 
+## V0.4 release candidate
+
+- Added EAS internal/production build automation, OTA publishing and rollback channels, branded native/store assets, privacy and store metadata, and a real-device acceptance matrix.
+- Added Expo push receipt verification, beta feedback, mobile stability metrics, Sentry source-map configuration, and an admin stability dashboard.
+- Updated vulnerable PostCSS and Sharp transitive dependencies while retaining the Expo SDK 54 compatibility baseline.
+
+## V0.4 stage 2
+
+- Migrated the native client to Expo Router with tabs, stack navigation, deep links, notification routing, and responsive dark-mode screens.
+- Added persistent offline mutations, reconnect/background sync, full article caching with limits and expiry, reading controls, biometric lock, anonymous telemetry, Sentry integration, component tests, Maestro flows, and EAS preview profiles.
+
 ## 0.4.0 - Unreleased
 
 - Added the React Native app foundation with email OTP authentication and SecureStore token rotation.
