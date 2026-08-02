@@ -1,7 +1,12 @@
+import NetInfo from "@react-native-community/netinfo";
 import { request } from "./api";
-import { getDeviceId, readSync, writeSync } from "./storage";
-import type { SyncSnapshot } from "./types";
+import { getDeviceId, readQueue, readSync, writeQueue, writeSync } from "./storage";
+import type { MutationResource, QueuedMutation, SyncSnapshot } from "./types";
+import { track } from "./telemetry";
 
-const key = () => `native-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-export async function pullSync(): Promise<SyncSnapshot | null> { const response = await request("/api/mini/sync?cursor=0"); if (!response.ok) return readSync(); const data = await response.json(); if (data.snapshot) await writeSync(data.snapshot); return data.snapshot || readSync(); }
-export async function pushMutation(resource: "bookmark" | "read" | "learning_task", resourceId: string, value: object) { const deviceId = await getDeviceId(); return request("/api/mini/sync", { method: "POST", headers: { "Idempotency-Key": key() }, body: JSON.stringify({ deviceId, mutations: [{ resource, resourceId, value, changedAt: new Date().toISOString() }] }) }); }
+const id = () => `native-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+export async function pullSync(): Promise<SyncSnapshot | null> { try { const response = await request("/api/mini/sync?cursor=0"); if (!response.ok) return readSync(); const data = await response.json(); if (data.snapshot) await writeSync(data.snapshot); return data.snapshot || readSync(); } catch { return readSync(); } }
+export async function enqueueMutation(resource: MutationResource, resourceId: string, value: object) { const queue = await readQueue(); const mutation: QueuedMutation = { id: id(), resource, resourceId, value, changedAt: new Date().toISOString(), attempts: 0 }; await writeQueue([...queue.filter((item) => !(item.resource === resource && item.resourceId === resourceId)), mutation]); return flushQueue(); }
+export async function flushQueue() { const startedAt = Date.now(); const state = await NetInfo.fetch(); if (!state.isConnected) return { sent: 0, pending: (await readQueue()).length }; const queue = await readQueue(); if (!queue.length) return { sent: 0, pending: 0 }; const deviceId = await getDeviceId(); let sent = 0; const pending: QueuedMutation[] = []; for (const mutation of queue) { try { const response = await request("/api/mini/sync", { method: "POST", headers: { "Idempotency-Key": mutation.id }, body: JSON.stringify({ deviceId, mutations: [{ resource: mutation.resource, resourceId: mutation.resourceId, value: mutation.value, changedAt: mutation.changedAt }] }) }); if (response.ok) sent += 1; else if (response.status >= 500 || response.status === 429) pending.push({ ...mutation, attempts: mutation.attempts + 1 }); } catch { pending.push({ ...mutation, attempts: mutation.attempts + 1 }); } } await writeQueue(pending.filter((item) => item.attempts < 5)); void track("sync_complete", { sent, pending: pending.length, durationMs: Date.now() - startedAt }); return { sent, pending: pending.length }; }
+export const pushMutation = enqueueMutation;
+export function startReconnectSync(onSynced?: () => void) { return NetInfo.addEventListener((state) => { if (state.isConnected) void flushQueue().then(() => pullSync()).then(() => onSynced?.()); }); }

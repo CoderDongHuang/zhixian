@@ -74,3 +74,37 @@ export const getCachedIndustryTree = unstable_cache(
   ["public-industry-v031"],
   { revalidate: 3600, tags: ["industry"] },
 );
+
+export const getCachedEntityRelations = unstable_cache(
+  (relation: string) => measured("relations.entity.public", () => prisma.entityRelation.findMany({
+    where: relation ? { relation } : {},
+    include: { fromEntity: true, toEntity: true },
+    orderBy: { confidence: "desc" },
+    take: 100,
+  })),
+  ["public-entity-relations-v04"],
+  { revalidate: 600, tags: ["relations", "entities"] },
+);
+
+export const getCachedEventRelations = unstable_cache(
+  (relation: string) => measured("relations.event.public", () => prisma.eventRelation.findMany({
+    where: relation ? { relation } : {},
+    include: { fromEvent: true, toEvent: true },
+    orderBy: { confidence: "desc" },
+    take: 100,
+  })),
+  ["public-event-relations-v04"],
+  { revalidate: 600, tags: ["relations", "events"] },
+);
+
+export const getCachedRelationTypes = unstable_cache(
+  () => measured("relations.types.public", async () => {
+    const [entityTypes, eventTypes] = await Promise.all([
+      prisma.entityRelation.findMany({ distinct: ["relation"], select: { relation: true }, orderBy: { relation: "asc" } }),
+      prisma.eventRelation.findMany({ distinct: ["relation"], select: { relation: true }, orderBy: { relation: "asc" } }),
+    ]);
+    return { entityTypes, eventTypes };
+  }),
+  ["public-relation-types-v04"],
+  { revalidate: 600, tags: ["relations"] },
+);

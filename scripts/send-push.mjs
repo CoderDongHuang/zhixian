@@ -18,6 +18,7 @@ const payload = JSON.stringify({ title: digest.title, body: digest.overview, url
 
 for (const subscription of subscriptions) {
   if (subscription.user.preference?.pushEnabled === false) { summary.skipped++; continue; }
+  if (subscription.platform !== "web" && subscription.categories?.digest === false) { summary.skipped++; continue; }
   summary.eligible++;
   const endpointHash = createHash("sha256").update(subscription.endpoint).digest("hex");
   const delivery = await prisma.pushDelivery.upsert({

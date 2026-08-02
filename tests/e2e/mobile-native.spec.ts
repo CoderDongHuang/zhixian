@@ -18,6 +18,14 @@ test("native OTP login, token rotation, feed, sync, and Expo push registration",
   const tokens = await refreshResponse.json();
   const authorization = { Authorization: `Bearer ${tokens.accessToken}` };
   expect((await request.get("/api/mini/feed", { headers: authorization })).ok()).toBeTruthy();
+  const articleResponse = await request.get("/api/mobile/articles/e2e-feed-ai", { headers: authorization });
+  expect(articleResponse.ok()).toBeTruthy();
+  expect(await articleResponse.json()).toMatchObject({ id: "e2e-feed-ai", eventId: "e2e-event-ai" });
+  expect((await request.get("/api/mobile/articles/e2e-feed-ai")).status()).toBe(401);
+  expect((await request.post("/api/mobile/telemetry", { headers: authorization, data: { name: "article_open", properties: { topic: "AI" } } })).status()).toBe(204);
+  expect((await request.post("/api/mobile/telemetry", { headers: authorization, data: { name: "email_collected" } })).status()).toBe(400);
+  expect((await request.post("/api/mobile/feedback", { headers: authorization, data: { rating: 5, message: "RC feedback" } })).ok()).toBeTruthy();
+  expect((await request.post("/api/mobile/feedback", { headers: authorization, data: { rating: 9, message: "invalid" } })).status()).toBe(400);
 
   const mutation = await request.post("/api/mini/sync", { headers: { ...authorization, "Idempotency-Key": "native-sync-001" }, data: { deviceId: "native-device", mutations: [{ resource: "bookmark", resourceId: "e2e-feed-ai", value: { bookmarked: true }, changedAt: new Date().toISOString() }] } });
   expect(mutation.ok()).toBeTruthy();

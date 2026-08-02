@@ -1,0 +1,55 @@
+name: Mobile OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        required: true
+        type: choice
+        options: [publish, rollback]
+      channel:
+        required: true
+        type: choice
+        options: [preview, production]
+      message:
+        required: true
+        type: string
+      group:
+        description: Previous update group ID, required for rollback
+        required: false
+        type: string
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_API_URL: https://zhixian.asia
+      EXPO_PUBLIC_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
+      EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      UPDATE_CHANNEL: ${{ inputs.channel }}
+      UPDATE_MESSAGE: ${{ inputs.message }}
+      ROLLBACK_GROUP: ${{ inputs.group }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Publish update
+        if: inputs.action == 'publish'
+        working-directory: mobile-app
+        run: npx eas-cli@latest update --channel "$UPDATE_CHANNEL" --message "$UPDATE_MESSAGE" --non-interactive
+      - name: Validate rollback input
+        if: inputs.action == 'rollback' && inputs.group == ''
+        run: exit 1
+      - name: Republish previous update
+        if: inputs.action == 'rollback' && inputs.group != ''
+        working-directory: mobile-app
+        run: npx eas-cli@latest update:republish --group "$ROLLBACK_GROUP" --channel "$UPDATE_CHANNEL" --message "$UPDATE_MESSAGE" --non-interactive

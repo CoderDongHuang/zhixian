@@ -40,9 +40,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci
-        working-directory: mobile-app
       - run: npm run typecheck
+        working-directory: mobile-app
+      - run: npm test
+        working-directory: mobile-app
+      - run: npx expo-doctor
+        working-directory: mobile-app
+      - run: npx expo export --platform android --output-dir dist-ci
         working-directory: mobile-app
       - run: npx playwright install --with-deps chromium
       - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector'

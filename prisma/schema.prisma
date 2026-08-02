@@ -216,6 +216,7 @@ model DeviceSubscription {
   auth      String
   platform  String   @default("web")
   userAgent String?
+  categories Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -329,6 +330,8 @@ model PushDelivery {
   nextAttemptAt DateTime?
   lastAttemptAt DateTime?
   sentAt        DateTime?
+  receiptStatus String?
+  receiptCheckedAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
