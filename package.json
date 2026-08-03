@@ -22,7 +22,7 @@
     "test:wechat": "node --experimental-strip-types --test tests/wechat-sync.test.ts",
     "test:miniprogram": "node --test tests/miniprogram-client.test.mjs",
     "test:entities": "node --experimental-strip-types --test tests/entities.test.ts",
-    "test:unit": "npm run test:push && npm run test:receipts && npm run test:learning && npm run test:wechat && npm run test:entities && npm run test:miniprogram",
+    "test:unit": "npm run test:push && npm run test:receipts && npm run test:learning && npm run test:wechat && npm run test:entities && npm run test:miniprogram && npm run test:release",
     "monitor:production": "node scripts/monitor-production.mjs",
     "start": "next start",
     "lint": "next lint",
@@ -47,7 +47,10 @@
     "assets:brand": "node scripts/build-brand-assets.mjs",
     "push:send": "node --env-file-if-exists=.env scripts/send-push.mjs",
     "push:receipts": "node --env-file-if-exists=.env scripts/check-expo-receipts.mjs",
-    "mobile:assets": "node scripts/build-mobile-assets.mjs"
+    "mobile:assets": "node scripts/build-mobile-assets.mjs",
+    "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
+    "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
