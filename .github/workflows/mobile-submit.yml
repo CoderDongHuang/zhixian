@@ -1,0 +1,37 @@
+name: Mobile store submission
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Store platform
+        required: true
+        type: choice
+        options: [android, ios]
+
+concurrency:
+  group: mobile-submit-${{ inputs.platform }}
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
+      SUBMIT_PLATFORM: ${{ inputs.platform }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate submission readiness
+        run: npm run release:check:submit
+      - name: Submit latest production build
+        working-directory: mobile-app
+        run: npx eas-cli@latest submit --platform "$SUBMIT_PLATFORM" --profile production --latest --non-interactive

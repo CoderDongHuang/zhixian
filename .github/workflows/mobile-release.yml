@@ -40,6 +40,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Validate release readiness
+        run: npm run release:check
       - run: npm run typecheck --workspace mobile-app
       - run: npm test --workspace mobile-app
       - run: npx eas-cli@latest build --platform "$BUILD_PLATFORM" --profile "$BUILD_PROFILE" --non-interactive --no-wait
