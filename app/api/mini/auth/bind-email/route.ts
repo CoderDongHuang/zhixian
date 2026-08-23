@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { hashSecret, isValidEmail, normalizeEmail } from "@/lib/auth";
+import { isValidEmail, normalizeEmail } from "@/lib/auth";
+import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
 import { authenticateMiniRequest } from "@/lib/mini-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -11,11 +12,16 @@ export async function POST(request: Request) {
   const code = String(body?.code || "").trim();
   if (!isValidEmail(email) || !code) return NextResponse.json({ error: "valid email and code are required" }, { status: 400 });
   const now = new Date();
-  const otp = await prisma.emailOtp.findFirst({ where: { email, codeHash: hashSecret(code), usedAt: null, expiresAt: { gt: now } }, orderBy: { createdAt: "desc" } });
+  const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
+  if (!e2eMode && await enforceAuthLimits(otpVerifyRules(request, email, auth.session.deviceId))) {
+    return NextResponse.json({ error: "verification failed; try again later" }, { status: 429 });
+  }
+  const otp = await verifyLatestOtp(email, code, now);
   const target = await prisma.user.findUnique({ where: { email } });
   if (!otp || !target) return NextResponse.json({ error: "invalid code or account" }, { status: 401 });
   if (target.id === auth.user.id) {
-    await prisma.emailOtp.update({ where: { id: otp.id }, data: { usedAt: now } });
+    const consumed = await prisma.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
+    if (consumed.count !== 1) return NextResponse.json({ error: "invalid code or account" }, { status: 401 });
     return NextResponse.json({ ok: true, account: { linked: true, email } });
   }
   await prisma.$transaction(async (tx) => {
@@ -32,7 +38,8 @@ export async function POST(request: Request) {
     await tx.learningTask.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.wechatIdentity.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.miniSession.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
-    await tx.emailOtp.update({ where: { id: otp.id }, data: { usedAt: now } });
+    const consumed = await tx.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
+    if (consumed.count !== 1) throw new Error("OTP was already consumed");
   });
   return NextResponse.json({ ok: true, account: { linked: true, email }, accessTokenInvalidated: true });
 }

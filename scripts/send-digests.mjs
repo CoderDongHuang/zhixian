@@ -1,12 +1,18 @@
 import { PrismaClient, DigestType, DeliveryStatus } from "@prisma/client";
 import { createHash } from "node:crypto";
+import { finishJob } from "./job-policy.mjs";
 
 const prisma = new PrismaClient();
+const startedAt = new Date();
 const type = String(process.argv[2] || "MORNING").toUpperCase();
 if (!Object.values(DigestType).includes(type)) throw new Error(`Unsupported digest type: ${type}`);
 if (!process.env.EMAIL_API_KEY || !process.env.EMAIL_FROM || !process.env.AUTH_SECRET) throw new Error("Email configuration is incomplete");
 const digest = await prisma.digest.findFirst({ where: { type }, orderBy: { createdAt: "desc" } });
-if (!digest) { console.log(`No ${type} digest found`); await prisma.$disconnect(); process.exit(0); }
+if (!digest) {
+  await finishJob({ prisma, name: `digest-send-${type.toLowerCase()}`, summary: { digest: null, recipients: 0, eligible: 0, sent: 0, failed: 0, skipped: 0 }, startedAt, attempts: 0, output: 0, failOnEmptyInput: true });
+  await prisma.$disconnect();
+  process.exit();
+}
 const enabledField = type === DigestType.MORNING ? "morningEnabled" : type === DigestType.EVENING ? "eveningEnabled" : "weeklyEnabled";
 const users = await prisma.user.findMany({ where: { email: { not: null }, OR: [{ preference: null }, { preference: { is: { emailEnabled: true, [enabledField]: true } } }] }, include: { preference: true, keywords: { where: { enabled: true } } } });
 function localClock(timeZone) {
@@ -67,5 +73,5 @@ for (const user of dueUsers) {
     await prisma.emailDelivery.upsert({ where: { digestId_userId: { digestId: digest.id, userId: user.id } }, update: { status: DeliveryStatus.FAILED, error: String(error.message).slice(0, 1000) }, create: { digestId: digest.id, userId: user.id, recipient: user.email, status: DeliveryStatus.FAILED, error: String(error.message).slice(0, 1000) } }); failed++;
   }
 }
-console.log({ digest: digest.key, recipients: dueUsers.length, eligible: users.length, sent, failed, skipped });
+await finishJob({ prisma, name: `digest-send-${type.toLowerCase()}`, summary: { digest: digest.key, recipients: dueUsers.length, eligible: users.length, sent, failed, skipped }, startedAt, attempts: sent + failed, output: sent, failOnZeroOutput: true });
 await prisma.$disconnect();

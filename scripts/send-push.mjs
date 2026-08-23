@@ -2,12 +2,18 @@ import { createHash } from "node:crypto";
 import webpush from "web-push";
 import { PrismaClient } from "@prisma/client";
 import { MAX_PUSH_RETRIES, PUSH_CLAIM_TIMEOUT_MS, processClaimedPush } from "../lib/push-delivery.mjs";
+import { finishJob } from "./job-policy.mjs";
 
 const prisma = new PrismaClient();
+const startedAt = new Date();
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT = "mailto:admin@example.com", APP_URL = "http://127.0.0.1:3000" } = process.env;
 
 const digest = await prisma.digest.findFirst({ orderBy: { createdAt: "desc" } });
-if (!digest) throw new Error("No digest available");
+if (!digest) {
+  await finishJob({ prisma, name: "push-send", summary: { digestId: null, subscriptions: 0, eligible: 0, claimed: 0, sent: 0, skipped: 0, failed: 0, expired: 0 }, startedAt, attempts: 0, output: 0, failOnEmptyInput: true });
+  await prisma.$disconnect();
+  process.exit();
+}
 const subscriptions = await prisma.deviceSubscription.findMany({ include: { user: { include: { preference: true } } } });
 if (subscriptions.some((item) => item.platform === "web")) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) throw new Error("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required for web subscriptions");
@@ -64,5 +70,5 @@ for (const subscription of subscriptions) {
   summary[outcome]++;
 }
 
-console.log(JSON.stringify({ type: "push-delivery-summary", ...summary, timestamp: new Date().toISOString() }));
+await finishJob({ prisma, name: "push-send", summary, startedAt, attempts: summary.claimed, output: summary.sent, failOnZeroOutput: true });
 await prisma.$disconnect();

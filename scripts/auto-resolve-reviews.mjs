@@ -1,7 +1,9 @@
 import { PrismaClient, ReviewStatus } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
+import { finishJob } from "./job-policy.mjs";
 
 const prisma = new PrismaClient();
+const startedAt = new Date();
 const limit = Number(process.env.REVIEW_BATCH_SIZE ?? 10);
 const pending = await prisma.analysis.findMany({
   where: { status: ReviewStatus.PENDING_REVIEW },
@@ -35,5 +37,5 @@ for (const item of pending) {
     console.log(`${item.event.title}: confidence=${confidence.toFixed(2)} status=${status}`);
   } catch (error) { failed++; console.error(`${item.event.title}: ${error.message}`); }
 }
-console.log({ total: pending.length, published, autoWithheld: withheld, failed });
+await finishJob({ prisma, name: "review-auto-resolve", summary: { total: pending.length, published, autoWithheld: withheld, failed }, startedAt, output: published + withheld });
 await prisma.$disconnect();

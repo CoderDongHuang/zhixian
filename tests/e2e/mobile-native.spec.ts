@@ -3,11 +3,25 @@ import { resetFixtures } from "./helpers";
 
 test.beforeEach(async ({ request }) => { await resetFixtures(request); });
 
+test("OTP is invalidated after five failed verification attempts", async ({ request }) => {
+  const otpResponse = await request.post("/api/auth/request-code", { data: { email: "e2e-a@example.com", deviceId: "otp-lock-test" } });
+  expect(otpResponse.ok()).toBeTruthy();
+  const { testCode } = await otpResponse.json();
+  const wrongCode = testCode === "000000" ? "111111" : "000000";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const response = await request.post("/api/mobile/auth/verify-code", { data: { email: "e2e-a@example.com", code: wrongCode, deviceId: "otp-lock-test" } });
+    expect(response.status()).toBe(401);
+  }
+  const locked = await request.post("/api/mobile/auth/verify-code", { data: { email: "e2e-a@example.com", code: testCode, deviceId: "otp-lock-test" } });
+  expect(locked.status()).toBe(401);
+});
+
 test("native OTP login, token rotation, feed, sync, and Expo push registration", async ({ request }) => {
   const otpResponse = await request.post("/api/auth/request-code", { data: { email: "e2e-a@example.com" } });
   expect(otpResponse.ok()).toBeTruthy();
   const { testCode } = await otpResponse.json();
-  expect((await request.post("/api/mobile/auth/verify-code", { data: { email: "e2e-a@example.com", code: "000000", deviceId: "native-device" } })).status()).toBe(401);
+  const wrongCode = testCode === "000000" ? "111111" : "000000";
+  expect((await request.post("/api/mobile/auth/verify-code", { data: { email: "e2e-a@example.com", code: wrongCode, deviceId: "native-device" } })).status()).toBe(401);
   const loginResponse = await request.post("/api/mobile/auth/verify-code", { data: { email: "e2e-a@example.com", code: testCode, deviceId: "native-device" } });
   expect(loginResponse.ok()).toBeTruthy();
   const login = await loginResponse.json();
