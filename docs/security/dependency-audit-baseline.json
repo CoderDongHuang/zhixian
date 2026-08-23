@@ -1,0 +1,8 @@
+{
+  "acceptedAdvisories": [
+    1119441,
+    1138808,
+    1138809
+  ],
+  "reason": "Expo SDK 54 toolchain advisories that require the coordinated Expo SDK 57 migration documented in dependency-audit-v0.4.md"
+}

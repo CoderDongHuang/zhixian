@@ -1,7 +1,10 @@
 import { PrismaClient, ReviewStatus } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
+import { finishJob } from "./job-policy.mjs";
+import { publicationDecision } from "./analysis-policy.mjs";
 
 const prisma = new PrismaClient();
+const startedAt = new Date();
 const batchSize = Number(process.env.ANALYSIS_BATCH_SIZE ?? 10);
 const events = await prisma.event.findMany({
   where: { analyses: { none: {} } },
@@ -35,16 +38,16 @@ for (const event of events) {
     const relevance = Number(verification.relevance) || 0;
     const completeness = Number(verification.completeness) || 0;
     const calculatedConfidence = factuality * 0.5 + relevance * 0.15 + completeness * 0.15 + trustScore * 0.2;
-    const sourceCount = new Set(event.documents.map(({ document }) => document.sourceId)).size;
-    const confidence = Math.max(0, Math.min(sourceCount >= 2 ? 1 : 0.74, calculatedConfidence));
     const unsupportedClaims = Array.isArray(verification.unsupportedClaims) ? verification.unsupportedClaims : [];
-    const status = confidence >= 0.78 && unsupportedClaims.length === 0 ? ReviewStatus.AUTO_PUBLISHED : ReviewStatus.PENDING_REVIEW;
+    const decision = publicationDecision(event.documents, calculatedConfidence, unsupportedClaims);
+    const confidence = decision.confidence;
+    const status = decision.publish ? ReviewStatus.AUTO_PUBLISHED : ReviewStatus.PENDING_REVIEW;
     const facts = Array.isArray(analysis.facts) ? analysis.facts : [];
     const predictions = Array.isArray(analysis.predictions) ? analysis.predictions : [];
     const created = await prisma.analysis.create({ data: {
       eventId: event.id, summary: String(analysis.summary ?? ""), whyImportant: String(analysis.whyImportant ?? ""), impact: String(analysis.impact ?? ""),
       developerImpact: String(analysis.developerImpact ?? ""), learnerAdvice: String(analysis.learnerAdvice ?? ""), facts: JSON.stringify(facts), predictions: JSON.stringify(predictions),
-      verificationNotes: JSON.stringify({ notes: verification.notes ?? "", unsupportedClaims, factuality, relevance, completeness }), confidence, status,
+      verificationNotes: JSON.stringify({ notes: verification.notes ?? "", unsupportedClaims, factuality, relevance, completeness, publicationPolicy: decision.reason }), confidence, status,
       modelVersion: primary.model, verifierModel: verifier.model, promptVersion: "day5-v1",
     } });
     const quotes = Array.isArray(analysis.evidenceQuotes) ? analysis.evidenceQuotes : [];
@@ -54,7 +57,11 @@ for (const event of events) {
     }
     const importance = Math.max(0, Math.min(1, Number(analysis.importance) || event.importance));
     await prisma.event.update({ where: { id: event.id }, data: { importance } });
-    if (status === ReviewStatus.AUTO_PUBLISHED) { await prisma.feedItem.create({ data: { eventId: event.id, rank: importance * confidence } }); published++; }
+    if (status === ReviewStatus.AUTO_PUBLISHED) {
+      const exists = await prisma.feedItem.findFirst({ where: { eventId: event.id } });
+      if (!exists) await prisma.feedItem.create({ data: { eventId: event.id, rank: importance * confidence } });
+      published++;
+    }
     else pending++;
     console.log(`${event.title}: confidence=${confidence.toFixed(2)} status=${status}`);
   } catch (error) {
@@ -63,5 +70,5 @@ for (const event of events) {
   }
 }
 
-console.log({ total: events.length, published, pendingReview: pending, failed });
+await finishJob({ prisma, name: "content-analyze", summary: { total: events.length, published, pendingReview: pending, failed }, startedAt, output: published + pending });
 await prisma.$disconnect();

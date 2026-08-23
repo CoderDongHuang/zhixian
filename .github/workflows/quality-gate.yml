@@ -40,6 +40,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run audit:prod
       - run: npm run typecheck
         working-directory: mobile-app
       - run: npm test
@@ -49,8 +50,7 @@ jobs:
       - run: npx expo export --platform android --output-dir dist-ci
         working-directory: mobile-app
       - run: npx playwright install --with-deps chromium
-      - run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector'
-      - run: npx prisma db push --skip-generate
+      - run: npm run db:migrate:deploy
       - run: npm run db:generate
       - run: npm run test:unit
       - run: npm run build

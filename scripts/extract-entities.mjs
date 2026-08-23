@@ -1,7 +1,9 @@
 import { PrismaClient, EntityType } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
+import { finishJob } from "./job-policy.mjs";
 
 const prisma = new PrismaClient();
+const startedAt = new Date();
 const batchSize = Number(process.env.ENTITY_BATCH_SIZE || 20);
 const analyses = await prisma.analysis.findMany({
   where: process.env.ENTITY_FORCE_RELATIONS === "true" ? { status: "AUTO_PUBLISHED" } : { status: "AUTO_PUBLISHED", event: { OR: [{ mentions: { none: {} } }, { timeline: { none: {} } }] } },
@@ -57,4 +59,5 @@ for (const analysis of analyses) {
     extracted++; console.log(`${analysis.event.title}: entities=${entities.length} relations=${relations.length} timeline=${timelines.length}`);
   } catch (error) { failed++; console.error(`${analysis.event.title}: ${error.message}`); }
 }
-console.log({ total: analyses.length, extracted, failed }); await prisma.$disconnect();
+await finishJob({ prisma, name: "entity-extract", summary: { total: analyses.length, extracted, failed }, startedAt, output: extracted });
+await prisma.$disconnect();

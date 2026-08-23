@@ -21,6 +21,7 @@ jobs:
       - run: npm run content:process
       - run: npm run content:embed
       - run: npm run content:analyze
+      - run: npm run reviews:auto-resolve
       - run: npm run entities:extract
       - name: Generate scheduled digest
         shell: bash

@@ -23,7 +23,7 @@ export async function request(path: string, init: RequestInit = {}, retry = true
   if (response.status !== 401 || !retry || !(await refreshSession())) return response;
   return request(path, init, false);
 }
-export async function requestCode(email: string) { return fetch(`${API_URL}/api/auth/request-code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }); }
+export async function requestCode(email: string) { const deviceId = await getDeviceId(); return fetch(`${API_URL}/api/auth/request-code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, deviceId }) }); }
 export async function verifyCode(email: string, code: string) { const deviceId = await getDeviceId(); const response = await fetch(`${API_URL}/api/mobile/auth/verify-code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code, deviceId }) }); if (response.ok) await installSession(await response.json()); return response; }
 export async function installSession(tokens: SessionTokens) { accessToken = tokens.accessToken; await setRefreshToken(tokens.refreshToken); }
 export function clearAccessToken() { accessToken = ""; }
