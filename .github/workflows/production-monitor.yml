@@ -1,9 +1,8 @@
 name: Production monitor
 
 on:
+  # Scheduled production automation is paused. See README.md before restoring it.
   workflow_dispatch:
-  schedule:
-    - cron: "*/15 * * * *"
 
 concurrency:
   group: production-monitor

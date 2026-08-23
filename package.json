@@ -6,6 +6,9 @@
   ],
   "version": "0.4.0-rc.1",
   "overrides": {
+    "expo": "54.0.37",
+    "expo-constants": "18.0.14",
+    "expo-file-system": "19.0.24",
     "postcss": "8.5.18",
     "sharp": "0.35.0"
   },

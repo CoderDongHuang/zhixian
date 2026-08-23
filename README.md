@@ -2,6 +2,8 @@
 
 AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项目，通过翻译、聚类、双模型分析与证据核验生成可信的个性化信息流、早晚报和周报。
 
+> **自动化状态（2026-08-23）：已暂停。** GitHub Actions 当前没有可用预算，内容采集、摘要投递、生产监控和 Expo 推送回执的定时触发均已移除，只保留人工触发。网站仍可访问，但暂停期间不会自动更新内容或发送通知。恢复前应先配置可用的 Actions 额度或迁移调度平台，再按“数据库迁移 -> Content pipeline -> Digest delivery -> Expo push receipts -> Production monitor”的顺序逐项手动验证并恢复定时触发。
+
 ## 技术栈
 
 - Next.js 15、React 19、TypeScript
