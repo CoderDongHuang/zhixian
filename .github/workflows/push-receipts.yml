@@ -1,8 +1,7 @@
 name: Expo push receipts
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"
+  # Scheduled production automation is paused. See README.md before restoring it.
   workflow_dispatch:
 
 concurrency:

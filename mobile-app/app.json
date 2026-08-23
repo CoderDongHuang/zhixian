@@ -11,16 +11,81 @@
     "ios": {
       "bundleIdentifier": "asia.zhixian.app",
       "supportsTablet": true,
-      "associatedDomains": ["applinks:zhixian.asia"],
-      "infoPlist": { "NSFaceIDUsageDescription": "使用面容认证保护知线中的学习和收藏数据。" }
+      "associatedDomains": [
+        "applinks:zhixian.asia"
+      ],
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "使用面容认证保护知线中的学习和收藏数据。"
+      }
     },
     "android": {
       "package": "asia.zhixian.app",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#F7F8FA" },
-      "intentFilters": [{ "action": "VIEW", "autoVerify": true, "data": [{ "scheme": "https", "host": "zhixian.asia", "pathPrefix": "/article" }, { "scheme": "https", "host": "zhixian.asia", "pathPrefix": "/report" }], "category": ["BROWSABLE", "DEFAULT"] }]
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F7F8FA"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "zhixian.asia",
+              "pathPrefix": "/article"
+            },
+            {
+              "scheme": "https",
+              "host": "zhixian.asia",
+              "pathPrefix": "/report"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
-    "plugins": ["expo-router", ["expo-splash-screen", { "image": "./assets/splash.png", "imageWidth": 360, "resizeMode": "contain", "backgroundColor": "#F7F8FA", "dark": { "backgroundColor": "#101512" } }], "expo-secure-store", ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#176B4D", "defaultChannel": "default" }], "expo-local-authentication", "expo-background-task", "expo-updates", "@sentry/react-native/expo"],
-    "experiments": { "typedRoutes": true },
-    "extra": { "router": { "origin": "https://zhixian.asia" } }
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 360,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F8FA",
+          "dark": {
+            "backgroundColor": "#101512"
+          }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#176B4D",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-local-authentication",
+      "expo-background-task",
+      "expo-updates",
+      "@sentry/react-native/expo"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://zhixian.asia"
+      },
+      "eas": {
+        "projectId": "8694465e-acde-4a50-81a8-cc6483f044d3"
+      }
+    },
+    "owner": "wubug"
   }
 }
