@@ -1,5 +1,5 @@
 import { PrismaClient, DigestType, DeliveryStatus } from "@prisma/client";
-import { createHash } from "node:crypto";
+import { issueUnsubscribeToken } from "../lib/unsubscribe-token.mjs";
 import { finishJob } from "./job-policy.mjs";
 
 const prisma = new PrismaClient();
@@ -51,7 +51,7 @@ function personalizedItems(user) {
 }
 
 function escapeHtml(value = "") { return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]); }
-function tokenFor(userId) { return createHash("sha256").update(`${process.env.AUTH_SECRET}:unsubscribe:${userId}`).digest("hex"); }
+function tokenFor(userId) { return issueUnsubscribeToken(userId); }
 function list(values = []) { return values.map((value) => `<li style="margin:0 0 10px;line-height:1.6">${escapeHtml(value)}</li>`).join(""); }
 function renderEmail(user) {
   const baseUrl = process.env.APP_URL || "http://127.0.0.1:3000";

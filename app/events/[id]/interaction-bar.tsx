@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function InteractionBar({ feedItemId, eventId, topic, speechText, initialBookmarked }: { feedItemId: string; eventId: string; topic: string; speechText: string; initialBookmarked: boolean }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
@@ -8,8 +8,8 @@ export function InteractionBar({ feedItemId, eventId, topic, speechText, initial
   const [reporting, setReporting] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
-  function track(action: string) { fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, feedItemId, eventId, topic }) }).catch(() => undefined); }
-  useEffect(() => { track("read"); }, []);
+  const track = useCallback((action: string) => { fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, feedItemId, eventId, topic }) }).catch(() => undefined); }, [eventId, feedItemId, topic]);
+  useEffect(() => { track("read"); }, [track]);
 
   async function toggleBookmark() {
     const response = await fetch(`/api/feed/${feedItemId}/bookmark`, { method: bookmarked ? "DELETE" : "POST" });

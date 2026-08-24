@@ -1,8 +1,9 @@
 export type FeedItem = { id: string; eventId: string; title: string; topic: string | null; summary: string; confidence: number; bookmarked: boolean; publishedAt: string; imageUrl?: string | null };
 export type ArticleDetail = FeedItem & { whyImportant?: string; learnerAdvice?: string; sources?: { name: string; title: string }[]; cachedAt?: string; readingProgress?: number };
 export type LearningPath = { id: string; title: string; goal: string; level: string; progress: number };
-export type LearningTask = { id: string; title: string; description: string; estimatedMinutes: number; completedAt: string | null; scheduledFor: string };
+export type LearningTask = { id: string; pathId?: string | null; title: string; description: string; estimatedMinutes: number; completedAt: string | null; scheduledFor: string };
 export type SyncSnapshot = { bookmarks: { feedItemId: string }[]; reads: { feedItemId: string }[]; paths: LearningPath[]; tasks: LearningTask[] };
+export type SyncChange = { sequence: string; resource: MutationResource; resourceId: string; value: Record<string, unknown>; changedAt: string };
 export type SessionTokens = { accessToken: string; refreshToken: string; expiresIn: number; account?: { email: string | null; linked: boolean } };
 export type MutationResource = "bookmark" | "read" | "learning_task";
 export type QueuedMutation = { id: string; resource: MutationResource; resourceId: string; value: object; changedAt: string; attempts: number };

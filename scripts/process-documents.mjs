@@ -31,7 +31,8 @@ for (const document of documents) {
       prisma.eventDocument.upsert({ where: { eventId_documentId: { eventId: event.id, documentId: document.id } }, update: { clusterMethod, clusterScore, clusterReason }, create: { eventId: event.id, documentId: document.id, clusterMethod, clusterScore, clusterReason } }),
       prisma.rawDocument.update({ where: { id: document.id }, data: { cleanedContent, translatedContent, language, topic, processingStatus, processedAt: new Date(), processingError: null } }),
     ]);
-    processingStatus === ProcessingStatus.PROCESSED ? processed++ : waiting++;
+    if (processingStatus === ProcessingStatus.PROCESSED) processed++;
+    else waiting++;
   } catch (error) {
     failed++;
     await prisma.rawDocument.update({ where: { id: document.id }, data: { processingStatus: ProcessingStatus.FAILED, processingError: String(error.message).slice(0, 1000), processedAt: new Date() } });

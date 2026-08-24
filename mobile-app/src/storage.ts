@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import type { AppSettings, ArticleDetail, FeedItem, QueuedMutation, SyncSnapshot } from "./types";
 
-const KEYS = { refresh: "zhixian.refreshToken", device: "zhixian.deviceId", feed: "zhixian.feed", offline: "zhixian.offline.v2", sync: "zhixian.sync", queue: "zhixian.mutationQueue", settings: "zhixian.settings" };
+const KEYS = { refresh: "zhixian.refreshToken", device: "zhixian.deviceId", feed: "zhixian.feed", offline: "zhixian.offline.v2", sync: "zhixian.sync", syncCursor: "zhixian.syncCursor", queue: "zhixian.mutationQueue", settings: "zhixian.settings" };
 export const DEFAULT_SETTINGS: AppSettings = { fontScale: 1, speechRate: 0.95, notifications: { digest: true, learning: true }, cacheLimitMb: 50, cacheTtlDays: 30, biometricLock: false, analytics: true };
 
 export async function getDeviceId() { let value = await SecureStore.getItemAsync(KEYS.device); if (!value) { value = `native-${Date.now()}-${Math.random().toString(36).slice(2)}`; await SecureStore.setItemAsync(KEYS.device, value); } return value; }
@@ -27,8 +27,10 @@ export const clearOffline = () => AsyncStorage.removeItem(KEYS.offline);
 export async function offlineSizeBytes() { return JSON.stringify(await readOffline()).length * 2; }
 export const readSync = () => readJson<SyncSnapshot | null>(KEYS.sync, null);
 export const writeSync = (value: SyncSnapshot) => writeJson(KEYS.sync, value);
+export const readSyncCursor = () => readJson<string>(KEYS.syncCursor, "0");
+export const writeSyncCursor = (value: string) => writeJson(KEYS.syncCursor, value);
 export const readQueue = () => readJson<QueuedMutation[]>(KEYS.queue, []);
 export const writeQueue = (value: QueuedMutation[]) => writeJson(KEYS.queue, value);
 export const readSettings = () => readJson<AppSettings>(KEYS.settings, DEFAULT_SETTINGS);
 export const writeSettings = (value: AppSettings) => writeJson(KEYS.settings, value);
-export const clearUserStorage = () => Promise.all([clearRefreshToken(), AsyncStorage.multiRemove([KEYS.sync, KEYS.queue])]);
+export const clearUserStorage = () => Promise.all([clearRefreshToken(), AsyncStorage.multiRemove([KEYS.sync, KEYS.syncCursor, KEYS.queue])]);

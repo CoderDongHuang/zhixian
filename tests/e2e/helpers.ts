@@ -12,6 +12,8 @@ export async function login(page: Page, email = "e2e-a@example.com") {
   await page.locator("form button").click();
   const { testCode } = await (await otpResponse).json();
   await page.locator('input[inputmode="numeric"]').fill(testCode);
+  const verifyResponse = page.waitForResponse((response) => response.url().endsWith("/api/auth/verify-code") && response.request().method() === "POST");
   await page.locator("form button").click();
+  expect((await verifyResponse).ok()).toBeTruthy();
   await page.waitForURL(/\/(onboarding|$)/);
 }

@@ -15,9 +15,11 @@ test("short-lived access token authenticates and rejects tampering or expiry", (
 });
 
 test("code2Session accepts a valid identity and rejects provider errors", async () => {
-  const success = await exchangeWechatCode("one-time-code", async () => new Response(JSON.stringify({ openid: "openid-1", unionid: "union-1", session_key: "private" })) as typeof fetch);
+  const successFetch = (async () => new Response(JSON.stringify({ openid: "openid-1", unionid: "union-1", session_key: "private" }))) as typeof fetch;
+  const success = await exchangeWechatCode("one-time-code", successFetch);
   assert.deepEqual(success, { openId: "openid-1", unionId: "union-1" });
-  await assert.rejects(() => exchangeWechatCode("bad", async () => new Response(JSON.stringify({ errcode: 40029, errmsg: "invalid code" })) as typeof fetch), /40029/);
+  const failureFetch = (async () => new Response(JSON.stringify({ errcode: 40029, errmsg: "invalid code" }))) as typeof fetch;
+  await assert.rejects(() => exchangeWechatCode("bad", failureFetch), /40029/);
 });
 
 test("refresh sessions are isolated by device, revocation, and expiry", () => {

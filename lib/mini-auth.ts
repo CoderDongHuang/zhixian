@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { hashSecret } from "@/lib/auth";
 
-import { accessTokenTtlSeconds, exchangeWechatCode, issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
+import { accessTokenTtlSeconds, issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
 export { exchangeWechatCode, issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
 
 const REFRESH_TTL_DAYS = 30;
