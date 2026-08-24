@@ -6,9 +6,12 @@ test.beforeEach(async ({ request }) => { await resetFixtures(request); });
 test("exports HTML, Markdown, and JSON templates", async ({ page }) => {
   await login(page);
   for (const format of ["html", "markdown", "json"]) {
-    const response = await page.request.get(`/api/reports/e2e-digest/export?template=learning&format=${format}`);
+    const create = await page.request.post("/api/reports/e2e-digest/export", { headers: { "Idempotency-Key": `e2e-export-${format}` }, data: { template: "learning", format } });
+    expect(create.status()).toBe(201);
+    const response = await page.request.get((await create.json()).downloadUrl);
     expect(response.ok()).toBeTruthy(); expect(response.headers()["content-disposition"]).toContain(`.${format === "markdown" ? "md" : format}`);
   }
+  expect((await page.request.get("/api/reports/e2e-digest/export?format=json")).status()).toBe(405);
 });
 
 test("entity detail, relationship filters, search, and merge authorization", async ({ page, browser }) => {
@@ -23,5 +26,5 @@ test("malicious input is bounded and unknown resources are rejected", async ({ p
   await login(page);
   expect((await page.request.post("/api/behavior", { data: { action: "<script>alert(1)</script>" } })).status()).toBe(400);
   expect((await page.request.post("/api/feed/e2e-feed-ai/feedback", { data: { report: "x".repeat(5000) } })).ok()).toBeTruthy();
-  expect((await page.request.get("/api/reports/not-owned/export?format=json")).status()).toBe(404);
+  expect((await page.request.post("/api/reports/not-owned/export", { data: { format: "json" } })).status()).toBe(404);
 });

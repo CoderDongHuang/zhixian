@@ -140,6 +140,7 @@ model SyncChange {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, sequence])
+  @@index([changedAt])
 }
 
 model SyncRequest {
@@ -175,6 +176,7 @@ model EmailOtp {
   createdAt    DateTime  @default(now())
 
   @@index([email, expiresAt])
+  @@index([expiresAt])
 }
 
 model AuthThrottle {
@@ -198,6 +200,7 @@ model SecurityEvent {
 
   @@index([kind, createdAt])
   @@index([subjectHash, createdAt])
+  @@index([createdAt])
 }
 
 model Session {
@@ -207,6 +210,8 @@ model Session {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model UserPreference {
@@ -258,11 +263,13 @@ model BehaviorEvent {
   topic      String?
   value      Float    @default(1)
   metadata   Json?
+  dedupeKey  String?  @unique
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([userId, topic, action])
+  @@index([createdAt])
 }
 
 model LearningPath {
@@ -312,15 +319,19 @@ model LearningTask {
 }
 
 model ReportExport {
-  id        String   @id @default(cuid())
-  userId    String
-  digestId  String?
-  template  String
-  format    String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  userId         String
+  digestId       String?
+  idempotencyKey String?
+  template       String
+  format         String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  digest         Digest?  @relation(fields: [digestId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 model Digest {
@@ -337,6 +348,7 @@ model Digest {
   user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries     EmailDelivery[]
   pushDeliveries PushDelivery[]
+  exports        ReportExport[]
 
   @@index([userId, type, createdAt])
   @@index([createdAt])
@@ -444,6 +456,7 @@ model SourceSnapshot {
   @@index([sourceId, fetchedAt])
   @@index([url, fetchedAt])
   @@index([documentId, fetchedAt])
+  @@index([fetchedAt])
 }
 
 model Event {
@@ -491,6 +504,7 @@ model PipelineRun {
 
   @@index([name, finishedAt])
   @@index([status, finishedAt])
+  @@index([finishedAt])
 }
 
 model Analysis {

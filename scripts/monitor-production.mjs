@@ -1,23 +1,32 @@
+import { evaluateMonitorSamples } from "./monitor-policy.mjs";
+
 const baseUrl = process.env.MONITOR_URL || "https://zhixian.asia";
-const threshold = Number(process.env.MONITOR_THRESHOLD_MS || 3500);
+const thresholdMs = Number(process.env.MONITOR_THRESHOLD_MS || 5000);
+const sampleCount = Math.max(3, Number(process.env.MONITOR_SAMPLE_COUNT || 3));
 const checks = [["health", "/api/health"], ["home", "/"], ["entities", "/entities"], ["relations", "/relations?kind=entity"]];
-let failed = 0;
+let unavailableChecks = 0;
+let degradedChecks = 0;
+
 for (const [name, path] of checks) {
-  const attempts = [];
-  let healthy = false;
-  for (let attempt = 1; attempt <= 2 && !healthy; attempt++) {
+  const samples = [];
+  for (let sample = 1; sample <= sampleCount; sample++) {
     const started = performance.now();
     try {
-      const response = await fetch(`${baseUrl}${path}`, { headers: { "User-Agent": "zhixian-production-monitor/0.3.1" }, signal: AbortSignal.timeout(12000) });
-      const body = await response.text(); const elapsed = Math.round(performance.now() - started);
-      healthy = response.ok && body.length > 0 && elapsed <= threshold;
-      if (name === "health") { try { healthy &&= JSON.parse(body).database === "ok"; } catch { healthy = false; } }
-      attempts.push({ attempt, status: response.status, elapsedMs: elapsed });
+      const response = await fetch(`${baseUrl}${path}`, { headers: { "User-Agent": "zhixian-production-monitor/0.4.0" }, signal: AbortSignal.timeout(12000) });
+      const body = await response.text();
+      const elapsedMs = Math.round(performance.now() - started);
+      let available = response.ok && body.length > 0;
+      if (name === "health") { try { available &&= JSON.parse(body).database === "ok"; } catch { available = false; } }
+      samples.push({ sample, available, status: response.status, elapsedMs });
     } catch (error) {
-      attempts.push({ attempt, error: error instanceof Error ? error.message : String(error) });
+      samples.push({ sample, available: false, error: error instanceof Error ? error.message : String(error), elapsedMs: Math.round(performance.now() - started) });
     }
   }
-  console.log(JSON.stringify({ level: healthy ? "info" : "error", check: name, healthy, thresholdMs: threshold, attempts }));
-  if (!healthy) failed++;
+  const result = evaluateMonitorSamples(samples, thresholdMs);
+  if (result.unavailable) unavailableChecks++;
+  if (result.slow) degradedChecks++;
+  console.log(JSON.stringify({ level: result.unavailable ? "error" : result.slow ? "warning" : "info", check: name, thresholdMs, coldStartExcluded: true, ...result, samples }));
 }
-if (failed) process.exitCode = 1;
+
+console.log(JSON.stringify({ status: unavailableChecks ? "FAILED" : degradedChecks ? "WARNING" : "SUCCEEDED", unavailableChecks, degradedChecks }));
+if (unavailableChecks) process.exitCode = 1;

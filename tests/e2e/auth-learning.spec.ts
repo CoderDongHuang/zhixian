@@ -22,6 +22,7 @@ test("learning fallback, replanning, and task completion", async ({ page }) => {
 test("recommendation feedback and IDOR protection", async ({ page, browser }) => {
   await login(page);
   expect((await page.request.post("/api/behavior", { data: { action: "bookmark", feedItemId: "e2e-feed-ai", topic: "AI 行业", value: 2 } })).ok()).toBeTruthy();
+  expect((await page.request.post("/api/behavior", { data: { action: "bookmark", feedItemId: "e2e-feed-ai", eventId: "wrong-event" } })).status()).toBe(400);
   expect((await page.request.post("/api/feed/e2e-feed-ai/feedback", { data: { helpful: true } })).ok()).toBeTruthy();
   const otherContext = await browser.newContext(); const other = await otherContext.newPage(); await login(other, "e2e-b@example.com");
   expect((await other.request.patch("/api/learning/tasks/e2e-task")).status()).toBe(404); await otherContext.close();

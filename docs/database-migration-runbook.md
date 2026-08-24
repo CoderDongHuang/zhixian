@@ -10,7 +10,7 @@
 2. 创建可验证的数据库快照，并记录恢复点、数据库实例和当前应用提交。
 3. 使用只读账号比较生产 schema 与提交 `151150b` 的 `prisma/schema.prisma`；有 drift 时停止迁移并先形成显式修复 SQL。
 4. 在生产部署环境执行 `npx prisma migrate resolve --applied 20260823000000_baseline`。该命令只登记已有基线，不执行建表 SQL。
-5. 执行 `npm run db:migrate:deploy`，应用 `20260823010000_p1_security_reliability`。
+5. 执行 `npm run db:migrate:deploy`，依次应用 `20260823010000_p1_security_reliability` 和 `20260824000000_p2_hardening`。
 6. 执行 `npx prisma migrate status`，确认没有 failed 或 pending migration，再部署依赖新字段的应用版本。
 7. 验证 `/api/health`、OTP 请求/验证、内容采集 dry run 和 `PipelineRun` 写入，然后再按 README 的顺序逐个恢复自动化。
 
@@ -29,3 +29,5 @@
 - 必须撤销数据库变更：停止全部写入，使用迁移前快照恢复到新实例，验证后切换连接。不要在仍有新版本写入时直接删除安全事件、快照或运行记录表。
 
 `RawDocument.contentHash` 从唯一约束改为普通索引是有意变更：不同 URL 可以拥有相同正文。P1 迁移先回填 `RawDocument.updatedAt` 再设置非空，兼容存量数据。
+
+P2 migration 新增的 `BehaviorEvent.dedupeKey` 与 `ReportExport.idempotencyKey` 均允许空值，对旧应用向后兼容；导出到 Digest 的外键使用 `ON DELETE SET NULL`。回滚应用时可保留这些字段和索引，避免破坏新版本已经产生的审计记录。

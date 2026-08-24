@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export const OTP_MAX_ATTEMPTS = 5;
 
-type LimitRule = {
+export type LimitRule = {
   scope: string;
   subject: string;
   limit: number;
@@ -74,9 +74,13 @@ async function consumeRule(rule: LimitRule, now = new Date()) {
 }
 
 export async function enforceAuthLimits(rules: LimitRule[]) {
+  return enforceRateLimits(rules, "auth_rate_limited");
+}
+
+export async function enforceRateLimits(rules: LimitRule[], eventKind = "rate_limited") {
   for (const rule of rules) {
     if (await consumeRule(rule)) {
-      await recordSecurityEvent("auth_rate_limited", rule.subject, { scope: rule.scope });
+      await recordSecurityEvent(eventKind, rule.subject, { scope: rule.scope });
       return true;
     }
   }

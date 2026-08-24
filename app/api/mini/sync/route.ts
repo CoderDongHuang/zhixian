@@ -19,6 +19,9 @@ export async function GET(request: Request) {
   const cursorValue = new URL(request.url).searchParams.get("cursor") || "0";
   let cursor: bigint;
   try { cursor = BigInt(cursorValue); } catch { return NextResponse.json({ error: "invalid cursor" }, { status: 400 }); }
+  const bounds = await prisma.syncChange.aggregate({ where: { userId: auth.user.id }, _min: { sequence: true }, _max: { sequence: true } });
+  const staleCursor = cursor !== BigInt(0) && (bounds._min.sequence === null || bounds._max.sequence === null || cursor < bounds._min.sequence || cursor > bounds._max.sequence);
+  if (staleCursor) cursor = BigInt(0);
   const initialSync = cursor === BigInt(0);
   const [changes, bookmarks, reads, paths, tasks] = await Promise.all([
     prisma.syncChange.findMany({ where: { userId: auth.user.id, sequence: { gt: cursor } }, orderBy: { sequence: "asc" }, take: 200 }),
@@ -30,6 +33,7 @@ export async function GET(request: Request) {
   const nextCursor = changes.length ? changes.at(-1)!.sequence : cursor;
   return NextResponse.json({
     cursor: nextCursor.toString(),
+    reset: staleCursor,
     hasMore: changes.length === 200,
     changes: changes.map((item) => ({ sequence: item.sequence.toString(), resource: item.resource, resourceId: item.resourceId, value: item.value, changedAt: item.changedAt })),
     snapshot: initialSync ? { bookmarks, reads, paths, tasks } : null,
@@ -54,6 +58,7 @@ export async function POST(request: Request) {
         const resource = mutation.resource!;
         const resourceId = mutation.resourceId!;
         const changedAt = mutationTime(mutation.changedAt);
+        let value = (mutation.value ?? {}) as Prisma.InputJsonValue;
         const state = await tx.syncState.findUnique({ where: { userId_resource_resourceId: { userId: auth.user.id, resource, resourceId } } });
         if (!shouldApplyChange(state?.clientChangedAt || null, changedAt)) {
           outcomes.push({ resource, resourceId, applied: false });
@@ -74,12 +79,14 @@ export async function POST(request: Request) {
           if (!task) throw new Error("unknown learning task");
           const completed = Boolean((mutation.value as { completed?: unknown } | null)?.completed);
           await tx.learningTask.update({ where: { id: resourceId }, data: { completedAt: completed ? changedAt : null } });
+          let pathProgress: number | null = null;
           if (task.pathId) {
             const [all, done] = await Promise.all([tx.learningTask.count({ where: { pathId: task.pathId } }), tx.learningTask.count({ where: { pathId: task.pathId, completedAt: { not: null } } })]);
-            await tx.learningPath.update({ where: { id: task.pathId }, data: { progress: all ? Math.round(done / all * 100) : 0 } });
+            pathProgress = all ? Math.round(done / all * 100) : 0;
+            await tx.learningPath.update({ where: { id: task.pathId }, data: { progress: pathProgress } });
           }
+          value = { completed, completedAt: completed ? changedAt.toISOString() : null, pathId: task.pathId, pathProgress };
         }
-        const value = (mutation.value ?? {}) as Prisma.InputJsonValue;
         await tx.syncState.upsert({ where: { userId_resource_resourceId: { userId: auth.user.id, resource, resourceId } }, update: { value, clientChangedAt: changedAt }, create: { userId: auth.user.id, resource, resourceId, value, clientChangedAt: changedAt } });
         await tx.syncChange.create({ data: { userId: auth.user.id, resource, resourceId, value } });
         outcomes.push({ resource, resourceId, applied: true });

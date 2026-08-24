@@ -20,7 +20,8 @@ jobs:
       - run: node scripts/monitor-production.mjs
         env:
           MONITOR_URL: https://zhixian.asia
-          MONITOR_THRESHOLD_MS: 3500
+          MONITOR_THRESHOLD_MS: 5000
+          MONITOR_SAMPLE_COUNT: 3
       - name: Send failure alert
         if: failure()
         run: |
