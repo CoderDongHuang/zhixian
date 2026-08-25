@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { sortEntityTimeline } from "@/lib/entity-policy";
+import { getCurrentUser } from "@/lib/auth";
+import { AddToCollection, EntitySubscriptionButton } from "@/app/research/research-controls";
 
 export const dynamic = "force-dynamic";
 const typeLabels: Record<string, string> = { COMPANY: "公司", PERSON: "人物", PRODUCT: "产品", TECHNOLOGY: "技术", OPEN_SOURCE_PROJECT: "开源项目" };
 
 export default async function EntityDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await getCurrentUser();
   const entity = await prisma.entity.findUnique({
     where: { id },
     include: {
@@ -29,11 +32,12 @@ export default async function EntityDetail({ params }: { params: Promise<{ id: s
     },
   });
   if (!entity) notFound();
+  const subscription = user ? await prisma.entitySubscription.findUnique({ where: { userId_entityId: { userId: user.id, entityId: id } }, select: { enabled: true } }) : null;
   const sourceMap = new Map<string, { url: string; title: string; source: string }>();
   for (const mention of entity.mentions) if (mention.document) sourceMap.set(mention.document.url, { url: mention.document.url, title: mention.document.title, source: mention.document.source.name });
   const sources = [...sourceMap.values()];
   const timeline = sortEntityTimeline(entity.mentions.flatMap((mention) => mention.event.timeline.map((item) => ({ ...item, eventId: mention.eventId }))));
-  return <main className="detail-shell"><Link href="/entities">返回实体档案</Link><header><p className="eyebrow">{typeLabels[entity.type] || entity.type}</p><h1>{entity.name}</h1><p>更新于 {entity.updatedAt.toLocaleString("zh-CN", { hour12: false })}</p></header>
+  return <main className="detail-shell"><Link href="/entities">返回实体档案</Link><header><p className="eyebrow">{typeLabels[entity.type] || entity.type}</p><h1>{entity.name}</h1><p>更新于 {entity.updatedAt.toLocaleString("zh-CN", { hour12: false })}</p><div className="detail-actions">{user ? <EntitySubscriptionButton entityId={entity.id} initialSubscribed={Boolean(subscription?.enabled)} /> : <Link href={`/login?next=${encodeURIComponent(`/entities/${entity.id}`)}`}>登录后关注</Link>}<AddToCollection targetType="ENTITY" targetId={entity.id} />{subscription?.enabled && <Link href={`/research/timeline?entityId=${encodeURIComponent(entity.id)}&days=30`}>查看 30 天变化</Link>}</div></header>
     <section><h2>简介</h2><p>{entity.description || "暂无描述"}</p>{entity.aliases.length > 0 && <div className="alias-list"><strong>别名</strong>{entity.aliases.map((item) => <span key={item.id}>{item.alias}</span>)}</div>}</section>
     <section><h2>实体关系</h2><div className="relation-list">{entity.outgoingRelations.map((item) => <article key={`out-${item.toEntityId}-${item.relation}`}><span>{item.relation}</span><Link href={`/entities/${item.toEntity.id}`}>{entity.name} → {item.toEntity.name}</Link><small>可信度 {Math.round(item.confidence * 100)}%</small>{item.evidence && <p>{item.evidence}</p>}</article>)}{entity.incomingRelations.map((item) => <article key={`in-${item.fromEntityId}-${item.relation}`}><span>{item.relation}</span><Link href={`/entities/${item.fromEntity.id}`}>{item.fromEntity.name} → {entity.name}</Link><small>可信度 {Math.round(item.confidence * 100)}%</small>{item.evidence && <p>{item.evidence}</p>}</article>)}{entity.outgoingRelations.length + entity.incomingRelations.length === 0 && <p className="empty-state">暂无已验证关系。</p>}</div></section>
     <section><h2>关联事件</h2>{entity.mentions.map((mention) => <article className="entity-event" key={mention.eventId}><div><span>{mention.event.topic || "未分类"}</span><span>{mention.event.createdAt.toLocaleDateString("zh-CN")}</span></div><h3><Link href={`/events/${mention.eventId}`}>{mention.event.analyses[0]?.summary || mention.event.title}</Link></h3><p>{mention.context}</p></article>)}</section>
