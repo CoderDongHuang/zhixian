@@ -2,6 +2,7 @@ import { PrismaClient, ReviewStatus } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
 import { finishJob } from "./job-policy.mjs";
 import { publicationDecision } from "./analysis-policy.mjs";
+import { normalizeEvidenceCandidates } from "../lib/evidence-policy.mjs";
 
 const prisma = new PrismaClient();
 const startedAt = new Date();
@@ -18,8 +19,8 @@ const verifier = { key: process.env.ANALYSIS_AI_API_KEY, url: process.env.ANALYS
 if (Object.values(primary).some((value) => !value) || Object.values(verifier).some((value) => !value)) throw new Error("Analysis model configuration is incomplete");
 
 const primarySystem = `你是严谨的 AI 行业研究分析师。只能依据材料，不得补充材料中没有的事实。事实、分析、预测必须分开。输出纯 JSON：
-{"summary":"中文摘要","whyImportant":"为什么重要","impact":"行业影响","developerImpact":"对开发者的影响","learnerAdvice":"对学习者的建议","facts":["可核验事实"],"predictions":["有条件的趋势判断"],"evidenceQuotes":["原文中的英文短句原样引用"],"importance":0.0}
-importance 为 0 到 1。预测必须使用可能、如果、取决于等不确定性表达。`;
+{"summary":"中文摘要","whyImportant":"为什么重要","impact":"行业影响","developerImpact":"对开发者的影响","learnerAdvice":"对学习者的建议","facts":["可核验事实"],"predictions":["有条件的趋势判断"],"evidence":[{"quote":"原文中的短句原样引用","stance":"SUPPORT|CONFLICT|CONTEXT"}],"importance":0.0}
+importance 为 0 到 1。预测必须使用可能、如果、取决于等不确定性表达。主动保留材料间的冲突，不得把冲突来源标记为支持。`;
 const verifierSystem = `你是独立事实核验员。核对分析是否完全受到材料支持。输出纯 JSON：
 {"factuality":0.0,"relevance":0.0,"completeness":0.0,"unsupportedClaims":["未获材料支持的表述"],"notes":"中文核验说明"}
 所有分数为 0 到 1。不要因为文风流畅而提高事实分。`;
@@ -50,10 +51,10 @@ for (const event of events) {
       verificationNotes: JSON.stringify({ notes: verification.notes ?? "", unsupportedClaims, factuality, relevance, completeness, publicationPolicy: decision.reason }), confidence, status,
       modelVersion: primary.model, verifierModel: verifier.model, promptVersion: "day5-v1",
     } });
-    const quotes = Array.isArray(analysis.evidenceQuotes) ? analysis.evidenceQuotes : [];
-    for (const quote of quotes.slice(0, 5)) {
-      const matching = event.documents.find(({ document }) => (document.cleanedContent || document.content || "").includes(quote));
-      if (matching) await prisma.evidence.create({ data: { analysisId: created.id, documentId: matching.document.id, quote } });
+    const evidence = normalizeEvidenceCandidates(analysis.evidence, analysis.evidenceQuotes);
+    for (const candidate of evidence) {
+      const matching = event.documents.find(({ document }) => (document.cleanedContent || document.content || "").includes(candidate.quote));
+      if (matching) await prisma.evidence.create({ data: { analysisId: created.id, documentId: matching.document.id, quote: candidate.quote, stance: candidate.stance } });
     }
     const importance = Math.max(0, Math.min(1, Number(analysis.importance) || event.importance));
     await prisma.event.update({ where: { id: event.id }, data: { importance } });

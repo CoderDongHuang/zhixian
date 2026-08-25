@@ -7,7 +7,7 @@ export async function mergeEntities(sourceId: string, targetId: string, mergedBy
   if (!sourceId || !targetId || sourceId === targetId) throw new Error("Source and target must be different entities");
   return prisma.$transaction(async (tx) => {
     const [source, target] = await Promise.all([
-      tx.entity.findUnique({ where: { id: sourceId }, include: { aliases: true, mentions: true, outgoingRelations: true, incomingRelations: true } }),
+      tx.entity.findUnique({ where: { id: sourceId }, include: { aliases: true, mentions: true, outgoingRelations: true, incomingRelations: true, subscriptions: true } }),
       tx.entity.findUnique({ where: { id: targetId }, select: { id: true, type: true, name: true } }),
     ]);
     if (!source || !target) throw new Error("Entity not found");
@@ -29,6 +29,13 @@ export async function mergeEntities(sourceId: string, targetId: string, mergedBy
       });
     }
     await tx.embedding.updateMany({ where: { entityId: source.id }, data: { entityId: target.id } });
+    for (const subscription of source.subscriptions) {
+      await tx.entitySubscription.upsert({
+        where: { userId_entityId: { userId: subscription.userId, entityId: target.id } },
+        update: { enabled: subscription.enabled },
+        create: { userId: subscription.userId, entityId: target.id, enabled: subscription.enabled },
+      });
+    }
     await tx.entityMerge.create({ data: { sourceEntityId: source.id, sourceName: source.name, targetEntityId: target.id, mergedByUserId, reason: reason?.slice(0, 500) } });
     await tx.entity.delete({ where: { id: source.id } });
     return { id: target.id, name: target.name, aliasesAdded: aliases.length, mentionsMoved: source.mentions.length, relationsMoved: relations.length };
