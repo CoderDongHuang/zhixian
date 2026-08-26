@@ -8,6 +8,7 @@ const checks = [
   ["health", "/api/health", 200],
   ["entities", "/entities", 200],
   ["timeline", "/timeline", 200],
+  ["trends", "/trends", 200],
   ["industry", "/industry", 200],
 ];
 let failed = 0;

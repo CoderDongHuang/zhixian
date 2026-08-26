@@ -1,0 +1,16 @@
+export type TrendCategoryValue = "GITHUB" | "MODEL_PRODUCT" | "PAPER" | "JOB";
+export const TREND_CATEGORIES: readonly TrendCategoryValue[];
+export const TREND_WINDOWS: readonly number[];
+export const TREND_METRICS: Record<TrendCategoryValue, Record<string, { label: string; unit: string; method: string }>>;
+export const PRIMARY_TREND_METRIC: Record<TrendCategoryValue, string>;
+export function isTrendCategory(value: unknown): value is TrendCategoryValue;
+export function parseTrendWindow(value: unknown): number;
+export function normalizeTrendMetrics(category: TrendCategoryValue, input: unknown): Record<string, number>;
+export function normalizeDataGaps(value: unknown): string[];
+export function requireHttpsUrl(value: unknown, label?: string): string;
+export function normalizeFeedObservations(value: unknown): Record<string, unknown>[];
+export function selectComparableSnapshots<T extends { observedAt: Date | string; windowDays: number }>(snapshots: T[]): T[];
+export function trendChange(points: { value: number }[]): { absolute: number; percent: number | null } | null;
+export function forecastInvalidationReasons(forecast: { trainingWindowEnd: Date | string; targetAt: Date | string; lowerBound: number; upperBound: number } | null | undefined, latestPoint: { at: Date | string; value: number } | null | undefined, now?: Date | string | number): string[];
+export function linearTrendForecast(points: { at: Date | string; value: number }[], horizonDays?: number): null | { targetAt: Date; forecastValue: number; lowerBound: number; upperBound: number; confidenceLevel: number; method: string; backtestMae: number; backtestMape: number | null; sampleSize: number; trainingWindowStart: Date; trainingWindowEnd: Date; invalidationRule: string };
+export function formatTrendValue(value: unknown, unit: string): string;

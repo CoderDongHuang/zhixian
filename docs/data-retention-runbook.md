@@ -15,6 +15,8 @@
 | ReportExport、PushDelivery、PipelineRun | 90 天 |
 | AlertDelivery | 180 天 |
 | EmailDelivery、SecurityEvent、SourceSnapshot | 365 天 |
+| TrendSnapshot | 730 天 |
+| TrendForecast | 365 天 |
 
 执行顺序：先创建数据库快照并记录表大小；运行 dry run 检查数量；在低流量窗口执行正式清理；复查 `/api/health`、同步全量重置、OTP 登录和报告导出。`SyncChange` 清理保留每个用户的最大 sequence，旧客户端 cursor 低于该锚点时服务端会自动返回全量 snapshot，避免静默漏同步。
 

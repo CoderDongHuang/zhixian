@@ -18,6 +18,8 @@ const operations = [
   ["pipelineRun", { finishedAt: { lt: retentionCutoff(RETENTION_DAYS.pipelineRun, now) } }],
   ["securityEvent", { createdAt: { lt: retentionCutoff(RETENTION_DAYS.securityEvent, now) } }],
   ["sourceSnapshot", { fetchedAt: { lt: retentionCutoff(RETENTION_DAYS.sourceSnapshot, now) } }],
+  ["trendSnapshot", { observedAt: { lt: retentionCutoff(RETENTION_DAYS.trendSnapshot, now) } }],
+  ["trendForecast", { generatedAt: { lt: retentionCutoff(RETENTION_DAYS.trendForecast, now) } }],
 ];
 
 const summary = {};

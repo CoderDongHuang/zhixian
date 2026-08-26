@@ -12,6 +12,8 @@ export const RETENTION_DAYS = Object.freeze({
   pipelineRun: 90,
   securityEvent: 365,
   sourceSnapshot: 365,
+  trendSnapshot: 730,
+  trendForecast: 365,
 });
 
 export function retentionCutoff(days, now = Date.now()) {
