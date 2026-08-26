@@ -39,6 +39,7 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 - V0.4.0 RC：原生 App 发布候选，尚未完成 Expo SDK 57、签名包、真机矩阵和应用商店发布门禁。
 - V0.4 稳定性加固：P0/P1/P2 修复已进入代码和正式 migration 链。
 - V0.6 可信研究工作台：六个优先方向已开发完成并通过本地全链路验证，尚待生产迁移与发布。
+- V0.7 趋势监测 V0.1：GitHub、模型/产品、论文和授权招聘指标、解释卡片及基础回测预测已开发完成，尚待生产数据源配置与发布。
 
 ## Web/PWA、学习与多端能力
 
@@ -49,6 +50,7 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 - 报告导出：决策摘要、研究报告、学习笔记三种模板，支持 HTML/打印 PDF、Markdown 和 JSON
 - 可信研究工作台：访问 `/research` 管理实体关注、研究专题、个人笔记、纠错通知和只读分享；实体 7/30/90 天变化位于 `/research/timeline`
 - 证据对照：事件详情将研究结论与支持、冲突、背景证据并列展示，分享页冻结来源、更新时间和版本号
+- 趋势监测：访问 `/trends` 查看四类原始指标、方法、窗口、许可、缺口，以及带回测误差、80% 区间和失效条件的 30 天基础预测
 
 ### 环境上线步骤
 
@@ -58,3 +60,4 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 4. 在服务端配置 `WECHAT_APP_ID`、`WECHAT_APP_SECRET` 和 `MINI_TOKEN_SECRET`，并在微信后台加入 HTTPS request 合法域名。小程序通过 `wx.login` 获取自己的短期令牌，不需要静态 API Token。
 
 数据保留策略与手动清理步骤见 [`docs/data-retention-runbook.md`](docs/data-retention-runbook.md)。
+趋势数据源、许可要求和人工运行步骤见 [`docs/trend-monitoring-runbook.md`](docs/trend-monitoring-runbook.md)。

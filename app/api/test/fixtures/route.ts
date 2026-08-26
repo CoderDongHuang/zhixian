@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 const ids = {
   users: ["e2e-user-a", "e2e-user-b", "e2e-admin"], events: ["e2e-event-ai", "e2e-event-oss"], feeds: ["e2e-feed-ai", "e2e-feed-oss"],
-  digest: "e2e-digest", entities: ["e2e-entity-a", "e2e-entity-b"], source: "e2e-source", docs: ["e2e-doc-ai", "e2e-doc-oss"], path: "e2e-path", task: "e2e-task",
+  digest: "e2e-digest", entities: ["e2e-entity-a", "e2e-entity-b"], source: "e2e-source", docs: ["e2e-doc-ai", "e2e-doc-oss"], path: "e2e-path", task: "e2e-task", trendSlugs: ["e2e-github", "e2e-model", "e2e-paper", "e2e-jobs"],
 };
 
 function allowed(request: Request) {
@@ -14,6 +14,7 @@ async function cleanup() {
   await prisma.emailOtp.deleteMany({ where: { email: { in: ["e2e-a@example.com", "e2e-b@example.com", "e2e-admin@example.com", "e2e-native@example.com"] } } });
   await prisma.authThrottle.deleteMany();
   await prisma.securityEvent.deleteMany();
+  await prisma.trendSubject.deleteMany({ where: { slug: { in: ids.trendSlugs } } });
   await prisma.entityMerge.deleteMany({ where: { OR: [{ sourceEntityId: { in: ids.entities } }, { targetEntityId: { in: ids.entities } }] } });
   await prisma.entityRelation.deleteMany({ where: { OR: [{ fromEntityId: { in: ids.entities } }, { toEntityId: { in: ids.entities } }] } });
   await prisma.entityMention.deleteMany({ where: { OR: [{ entityId: { in: ids.entities } }, { eventId: { in: ids.events } }, { documentId: { in: ids.docs } }] } });
@@ -54,6 +55,26 @@ export async function POST(request: Request) {
   await prisma.entity.createMany({ data: [{ id: ids.entities[0], type: "COMPANY", name: "E2E Company", normalized: "e2e company", description: "测试公司" }, { id: ids.entities[1], type: "COMPANY", name: "E2E Company Alias", normalized: "e2e company alias", description: "待合并公司" }] });
   await prisma.entityMention.create({ data: { entityId: ids.entities[0], eventId: ids.events[0], documentId: ids.docs[0], context: "E2E context" } });
   await prisma.entityRelation.create({ data: { fromEntityId: ids.entities[0], toEntityId: ids.entities[1], relation: "COOPERATES_WITH", confidence: 0.8 } });
+  const trendSubjects = await Promise.all([
+    prisma.trendSubject.create({ data: { slug: ids.trendSlugs[0], name: "E2E AI Repository", category: "GITHUB", description: "开源项目活跃度", sourceName: "GitHub API", sourceUrl: "https://github.com/example/e2e-ai", sourceLicense: "GitHub API Terms", methodology: "Stars、Forks、贡献者、发布和 Issue 的 30 天快照。" } }),
+    prisma.trendSubject.create({ data: { slug: ids.trendSlugs[1], name: "E2E Model Pro", category: "MODEL_PRODUCT", description: "模型能力与成本变化", sourceName: "E2E Official Pricing", sourceUrl: "https://example.com/model", sourceLicense: "Official public data", methodology: "官方价格、规格与基准版本化记录。" } }),
+    prisma.trendSubject.create({ data: { slug: ids.trendSlugs[2], name: "E2E AI Papers", category: "PAPER", description: "主题论文与引用变化", sourceName: "OpenAlex", sourceUrl: "https://openalex.org/C154945302", sourceLicense: "CC0", methodology: "30 天主题论文量，引用与机构基于来源样本。" } }),
+    prisma.trendSubject.create({ data: { slug: ids.trendSlugs[3], name: "E2E AI Jobs", category: "JOB", description: "授权岗位样本变化", sourceName: "E2E Licensed Jobs", sourceUrl: "https://example.com/jobs", sourceLicense: "Licensed test dataset", methodology: "30 天去重岗位、技能、地区与有效薪资样本。" } }),
+  ]);
+  const trendValues = [100, 108, 116, 127, 139, 152, 166, 181];
+  for (let index = 0; index < trendValues.length; index++) {
+    const observedAt = new Date(now.getTime() - (trendValues.length - 1 - index) * 86400000);
+    await prisma.trendSnapshot.createMany({ data: [
+      { subjectId: trendSubjects[0].id, observedAt, windowDays: 30, metrics: { stars: trendValues[index], forks: 20 + index, contributors: 8 + index, releases30d: 2 + index % 2, issueVelocity30d: 12 + index }, dimensions: { language: "TypeScript" }, sourceUrl: trendSubjects[0].sourceUrl, sourceFetchedAt: observedAt },
+      { subjectId: trendSubjects[1].id, observedAt, windowDays: 30, metrics: { releases30d: 1 + index % 3, inputPricePerMillion: Math.max(1, 8 - index * 0.5), outputPricePerMillion: Math.max(2, 16 - index), contextTokens: 32000 + index * 8000, benchmarkScore: 70 + index }, dimensions: { benchmark: "E2E-Bench" }, dataGaps: index === trendValues.length - 1 ? ["缺少多语言基准"] : [], sourceUrl: trendSubjects[1].sourceUrl, sourceFetchedAt: observedAt },
+      { subjectId: trendSubjects[2].id, observedAt, windowDays: 30, metrics: { paperCount: 40 + index * 3, citations: 300 + index * 25, citationGrowth: 25, institutions: 15 + index }, dimensions: { topInstitutions: ["E2E University"] }, sourceUrl: trendSubjects[2].sourceUrl, sourceFetchedAt: observedAt },
+      { subjectId: trendSubjects[3].id, observedAt, windowDays: 30, metrics: { jobCount: 60 + index * 4, medianSalary: 32000 + index * 500, remoteShare: 20 + index, skillCoverage: 12 + index }, dimensions: { skills: ["Python", "LLM"], regions: ["上海", "深圳"], salarySamples: 45 + index }, dataGaps: ["仅包含授权样本，不代表全市场"], sourceUrl: trendSubjects[3].sourceUrl, sourceFetchedAt: observedAt },
+    ] });
+  }
+  await prisma.trendForecast.createMany({ data: [
+    { subjectId: trendSubjects[0].id, metricKey: "stars", horizonDays: 30, targetAt: new Date(now.getTime() + 30 * 86400000), forecastValue: 300, lowerBound: 250, upperBound: 350, method: "最小二乘线性趋势 + 扩展窗口滚动回测", backtestMae: 3.2, backtestMape: 2.1, sampleSize: 8, trainingWindowStart: new Date(now.getTime() - 7 * 86400000), trainingWindowEnd: now, invalidationRule: "新快照超出预测区间，来源口径变化，或连续 7 天缺少数据时失效" },
+    { subjectId: trendSubjects[1].id, metricKey: "contextTokens", horizonDays: 30, targetAt: new Date(now.getTime() + 29 * 86400000), forecastValue: 90000, lowerBound: 80000, upperBound: 100000, method: "最小二乘线性趋势 + 扩展窗口滚动回测", backtestMae: 1200, backtestMape: 2.5, sampleSize: 7, trainingWindowStart: new Date(now.getTime() - 7 * 86400000), trainingWindowEnd: new Date(now.getTime() - 86400000), invalidationRule: "新快照超出预测区间，来源口径变化，或连续 7 天缺少数据时失效" },
+  ] });
   await prisma.learningPath.create({ data: { id: ids.path, userId: ids.users[0], title: "E2E 规则学习路线", goal: "提升技能", level: "入门", topics: ["AI 行业"], outline: [{ phase: "基础", objective: "掌握测试基础知识", weeks: 1, topics: ["概念", "实践"] }], modelVersion: "rules-v1", generationReason: "E2E fallback" } });
   await prisma.learningTask.create({ data: { id: ids.task, userId: ids.users[0], pathId: ids.path, title: "E2E 今日任务", description: "完成端到端测试任务", scheduledFor: now, reason: "E2E", modelVersion: "rules-v1" } });
   return NextResponse.json({ ok: true, ids, users: { a: "e2e-a@example.com", b: "e2e-b@example.com", admin: "e2e-admin@example.com" } });

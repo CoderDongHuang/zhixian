@@ -1,0 +1,28 @@
+name: Trend monitoring
+
+on:
+  workflow_dispatch:
+
+jobs:
+  collect-and-forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_TREND_REPOS: ${{ vars.GITHUB_TREND_REPOS }}
+      TREND_PAPER_TOPICS_JSON: ${{ vars.TREND_PAPER_TOPICS_JSON }}
+      TREND_FEEDS_JSON: ${{ vars.TREND_FEEDS_JSON }}
+      TREND_FEED_TOKEN_MODEL_PRODUCT: ${{ secrets.TREND_FEED_TOKEN_MODEL_PRODUCT }}
+      TREND_FEED_TOKEN_JOBS: ${{ secrets.TREND_FEED_TOKEN_JOBS }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run trends:collect
+      - run: npm run trends:forecast

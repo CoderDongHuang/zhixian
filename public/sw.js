@@ -1,4 +1,4 @@
-const CACHE = "zhixian-v03";
+const CACHE = "zhixian-v04";
 const OFFLINE_ASSETS = ["/offline", "/icon-192.png", "/icon-512.png", "/brand-logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -11,7 +11,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin || request.url.includes("/api/")) return;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  // React Server Component responses depend on router state and must never enter the PWA asset cache.
+  if (request.headers.get("RSC") === "1" || url.searchParams.has("_rsc")) return;
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).catch(() => caches.match("/offline")));
     return;

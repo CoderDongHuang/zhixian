@@ -1,6 +1,6 @@
 const baseUrl = process.env.PERFORMANCE_URL || "https://zhixian.asia";
 const thresholdMs = Number(process.env.PERFORMANCE_THRESHOLD_MS || 2500);
-const paths = ["/", "/digests", "/entities", "/timeline", "/industry", "/relations?kind=entity"];
+const paths = ["/", "/digests", "/entities", "/timeline", "/industry", "/relations?kind=entity", "/trends"];
 let failed = 0;
 
 for (const path of paths) {

@@ -79,6 +79,13 @@ enum ResearchItemType {
   DIGEST
 }
 
+enum TrendCategory {
+  GITHUB
+  MODEL_PRODUCT
+  PAPER
+  JOB
+}
+
 model User {
   id                    String                 @id @default(cuid())
   email                 String?                @unique
@@ -631,10 +638,77 @@ model Entity {
   incomingRelations EntityRelation[]     @relation("EntityTo")
   mergesAsTarget    EntityMerge[]        @relation("EntityMergeTarget")
   subscriptions     EntitySubscription[]
+  trendSubjects     TrendSubject[]
 
   @@unique([type, normalized])
   @@index([type, name])
   @@index([updatedAt])
+}
+
+model TrendSubject {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  name          String
+  category      TrendCategory
+  description   String?
+  sourceName    String
+  sourceUrl     String
+  sourceLicense String?
+  methodology   String
+  entityId      String?
+  enabled       Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  entity        Entity?         @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  snapshots     TrendSnapshot[]
+  forecasts     TrendForecast[]
+
+  @@index([category, enabled, updatedAt])
+  @@index([entityId])
+}
+
+model TrendSnapshot {
+  id                 String       @id @default(cuid())
+  subjectId          String
+  observedAt         DateTime
+  windowDays         Int          @default(30)
+  metrics            Json
+  dimensions         Json?
+  dataGaps           String[]     @default([])
+  methodologyVersion String       @default("trend-v1")
+  sourceUrl          String
+  sourceFetchedAt    DateTime
+  createdAt          DateTime     @default(now())
+  subject            TrendSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, observedAt])
+  @@index([subjectId, observedAt])
+  @@index([observedAt])
+}
+
+model TrendForecast {
+  id                  String       @id @default(cuid())
+  subjectId           String
+  metricKey           String
+  horizonDays         Int
+  generatedAt         DateTime     @default(now())
+  targetAt            DateTime
+  forecastValue       Float
+  lowerBound          Float
+  upperBound          Float
+  confidenceLevel     Float        @default(0.8)
+  method              String
+  backtestMae         Float
+  backtestMape        Float?
+  sampleSize          Int
+  trainingWindowStart DateTime
+  trainingWindowEnd   DateTime
+  invalidationRule    String
+  subject             TrendSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, metricKey, horizonDays, trainingWindowEnd], map: "TrendForecast_subject_metric_horizon_training_end_key")
+  @@index([subjectId, metricKey, generatedAt])
+  @@index([targetAt])
 }
 
 model EntitySubscription {
