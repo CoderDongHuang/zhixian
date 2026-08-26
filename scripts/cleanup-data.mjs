@@ -20,6 +20,7 @@ const operations = [
   ["sourceSnapshot", { fetchedAt: { lt: retentionCutoff(RETENTION_DAYS.sourceSnapshot, now) } }],
   ["trendSnapshot", { observedAt: { lt: retentionCutoff(RETENTION_DAYS.trendSnapshot, now) } }],
   ["trendForecast", { generatedAt: { lt: retentionCutoff(RETENTION_DAYS.trendForecast, now) } }],
+  ["researchAgentTask", { createdAt: { lt: retentionCutoff(RETENTION_DAYS.researchAgentTask, now) }, status: { in: ["COMPLETED", "REFUSED", "FAILED", "CANCELLED"] } }],
 ];
 
 const summary = {};

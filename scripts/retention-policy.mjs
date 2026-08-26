@@ -14,6 +14,7 @@ export const RETENTION_DAYS = Object.freeze({
   sourceSnapshot: 365,
   trendSnapshot: 730,
   trendForecast: 365,
+  researchAgentTask: 365,
 });
 
 export function retentionCutoff(days, now = Date.now()) {
