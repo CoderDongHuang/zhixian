@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     await tx.behaviorEvent.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.learningPath.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.learningTask.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
+    await tx.learningAttempt.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
+    await tx.learningReview.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.wechatIdentity.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.miniSession.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     const consumed = await tx.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });

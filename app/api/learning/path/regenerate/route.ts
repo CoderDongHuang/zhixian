@@ -8,8 +8,8 @@ export async function POST() {
   try {
     const path = await regenerateLearningPath(user.id);
     return NextResponse.json({ ok: true, pathId: path.id, modelVersion: path.modelVersion });
-  } catch (error) {
-    console.error(JSON.stringify({ type: "learning-regenerate-error", userId: user.id, error: String(error instanceof Error ? error.message : error).slice(0, 300) }));
+  } catch {
+    console.error(JSON.stringify({ type: "learning-regenerate-error", reason: "generation_failed" }));
     return NextResponse.json({ error: "路线生成失败，请稍后重试" }, { status: 500 });
   }
 }

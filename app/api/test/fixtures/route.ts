@@ -76,7 +76,11 @@ export async function POST(request: Request) {
     { subjectId: trendSubjects[1].id, metricKey: "contextTokens", horizonDays: 30, targetAt: new Date(now.getTime() + 29 * 86400000), forecastValue: 90000, lowerBound: 80000, upperBound: 100000, method: "最小二乘线性趋势 + 扩展窗口滚动回测", backtestMae: 1200, backtestMape: 2.5, sampleSize: 7, trainingWindowStart: new Date(now.getTime() - 7 * 86400000), trainingWindowEnd: new Date(now.getTime() - 86400000), invalidationRule: "新快照超出预测区间，来源口径变化，或连续 7 天缺少数据时失效" },
   ] });
   await prisma.learningPath.create({ data: { id: ids.path, userId: ids.users[0], title: "E2E 规则学习路线", goal: "提升技能", level: "入门", topics: ["AI 行业"], outline: [{ phase: "基础", objective: "掌握测试基础知识", weeks: 1, topics: ["概念", "实践"] }], modelVersion: "rules-v1", generationReason: "E2E fallback" } });
-  await prisma.learningTask.create({ data: { id: ids.task, userId: ids.users[0], pathId: ids.path, title: "E2E 今日任务", description: "完成端到端测试任务", scheduledFor: now, reason: "E2E", modelVersion: "rules-v1" } });
+  await prisma.learningTask.create({ data: { id: "e2e-prerequisite", userId: ids.users[0], pathId: ids.path, taskType: "READING", title: "E2E 先修任务", description: "已完成的先修任务", scheduledFor: new Date(now.getTime() - 86400000), completedAt: now, qualityScore: 90, reason: "E2E", modelVersion: "rules-v1" } });
+  await prisma.learningTask.create({ data: { id: ids.task, userId: ids.users[0], pathId: ids.path, eventId: ids.events[0], entityId: ids.entities[0], prerequisiteTaskId: "e2e-prerequisite", taskType: "PRACTICE", title: "E2E 今日任务", description: "完成端到端测试任务", scheduledFor: now, reason: "E2E", modelVersion: "rules-v1", exercise: { version: 1, instructions: "完成测试实践", deliverable: "写出测试实践产出", questions: [
+    { id: "event", concept: "事件识别", prompt: "任务绑定哪个事件？", kind: "single", options: ["E2E AI Event", "其他事件"], correctAnswers: ["E2E AI Event"], explanation: "任务绑定 E2E AI Event" },
+    { id: "impact", concept: "事件影响", prompt: "哪个判断可信？", kind: "single", options: ["验证推荐和交互", "忽略证据"], correctAnswers: ["验证推荐和交互"], explanation: "已发布分析要求验证推荐和交互" },
+  ] } } });
   return NextResponse.json({ ok: true, ids, users: { a: "e2e-a@example.com", b: "e2e-b@example.com", admin: "e2e-admin@example.com" } });
 }
 
@@ -84,5 +88,6 @@ export async function PATCH(request: Request) {
   if (!allowed(request)) return new NextResponse(null, { status: 404 });
   const body = await request.json().catch(() => ({}));
   if (body.action === "expire-sessions") { await prisma.session.updateMany({ where: { user: { email: body.email } }, data: { expiresAt: new Date(0) } }); return NextResponse.json({ ok: true }); }
+  if (body.action === "due-learning-reviews") { const review = await prisma.learningReview.findFirst({ where: { userId: ids.users[0], taskId: ids.task }, orderBy: { createdAt: "asc" } }); if (!review) return NextResponse.json({ error: "review not found" }, { status: 404 }); await prisma.learningReview.update({ where: { id: review.id }, data: { dueAt: new Date(0) } }); return NextResponse.json({ ok: true, reviewId: review.id }); }
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
 }

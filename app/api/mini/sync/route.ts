@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authenticateMiniRequest } from "@/lib/mini-auth";
 import { prisma } from "@/lib/prisma";
 import { shouldApplyChange, validIdempotencyKey } from "@/lib/sync-policy";
+import { calculatePathProgress } from "@/lib/learning-policy";
 
 type Mutation = { resource?: string; resourceId?: string; value?: unknown; changedAt?: string };
 const resources = new Set(["bookmark", "read", "learning_task"]);
@@ -78,14 +79,15 @@ export async function POST(request: Request) {
           const task = await tx.learningTask.findFirst({ where: { id: resourceId, userId: auth.user.id } });
           if (!task) throw new Error("unknown learning task");
           const completed = Boolean((mutation.value as { completed?: unknown } | null)?.completed);
-          await tx.learningTask.update({ where: { id: resourceId }, data: { completedAt: completed ? changedAt : null } });
+          if (completed && task.exercise) throw new Error("complete this learning exercise on web");
+          await tx.learningTask.update({ where: { id: resourceId }, data: { completedAt: completed ? changedAt : null, qualityScore: completed ? task.qualityScore ?? 60 : null } });
           let pathProgress: number | null = null;
           if (task.pathId) {
-            const [all, done] = await Promise.all([tx.learningTask.count({ where: { pathId: task.pathId } }), tx.learningTask.count({ where: { pathId: task.pathId, completedAt: { not: null } } })]);
-            pathProgress = all ? Math.round(done / all * 100) : 0;
+            const tasks = await tx.learningTask.findMany({ where: { pathId: task.pathId, taskType: { not: "REVIEW" } }, select: { completedAt: true, qualityScore: true } });
+            pathProgress = calculatePathProgress(tasks);
             await tx.learningPath.update({ where: { id: task.pathId }, data: { progress: pathProgress } });
           }
-          value = { completed, completedAt: completed ? changedAt.toISOString() : null, pathId: task.pathId, pathProgress };
+          value = { completed, completedAt: completed ? changedAt.toISOString() : null, pathId: task.pathId, pathProgress, qualityScore: completed ? task.qualityScore ?? 60 : null };
         }
         await tx.syncState.upsert({ where: { userId_resource_resourceId: { userId: auth.user.id, resource, resourceId } }, update: { value, clientChangedAt: changedAt }, create: { userId: auth.user.id, resource, resourceId, value, clientChangedAt: changedAt } });
         await tx.syncChange.create({ data: { userId: auth.user.id, resource, resourceId, value } });
