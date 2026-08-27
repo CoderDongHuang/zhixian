@@ -8,11 +8,13 @@ export type LearningContext = {
   preferredTopics: string[];
   behaviorTopics: { topic: string; score: number }[];
   completedTasks: string[];
+  recentQuality: number | null;
+  weakConcepts: string[];
 };
 
 export type LearningOutlineItem = { phase: string; objective: string; weeks: number; topics: string[] };
 export type AiLearningPath = { title: string; goal: string; topics: string[]; outline: LearningOutlineItem[]; reason: string };
-export type DailyCandidate = { eventId: string; topic: string; title: string; learnerAdvice: string | null };
+export type DailyCandidate = { eventId: string; topic: string; title: string; learnerAdvice: string | null; entityId?: string | null; entityName?: string | null; eventTitle?: string; summary?: string };
 export type AiDailyTask = { title: string; description: string; reason: string; estimatedMinutes: number; eventId: string };
 export type ModelConfig = { key: string; url: string; model: string; timeoutMs?: number };
 

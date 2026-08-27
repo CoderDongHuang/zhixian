@@ -101,6 +101,13 @@ enum ResearchAgentStatus {
   CANCELLED
 }
 
+enum LearningTaskType {
+  READING
+  PRACTICE
+  CODE
+  REVIEW
+}
+
 model User {
   id                    String                 @id @default(cuid())
   email                 String?                @unique
@@ -118,6 +125,8 @@ model User {
   behaviors             BehaviorEvent[]
   learningPaths         LearningPath[]
   learningTasks         LearningTask[]
+  learningAttempts      LearningAttempt[]
+  learningReviews       LearningReview[]
   exports               ReportExport[]
   pushDeliveries        PushDelivery[]
   wechatIdentities      WechatIdentity[]
@@ -342,25 +351,87 @@ model LearningPath {
 }
 
 model LearningTask {
-  id               String        @id @default(cuid())
-  userId           String
-  pathId           String?
-  eventId          String?
-  title            String
-  description      String
-  reason           String?
-  estimatedMinutes Int           @default(15)
-  scheduledFor     DateTime
-  completedAt      DateTime?
-  createdAt        DateTime      @default(now())
-  modelVersion     String        @default("rules-v1")
-  promptVersion    String        @default("daily-task-v1")
-  generationReason String?
-  generatedAt      DateTime      @default(now())
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  path             LearningPath? @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  id                 String            @id @default(cuid())
+  userId             String
+  pathId             String?
+  eventId            String?
+  entityId           String?
+  taskType           LearningTaskType  @default(READING)
+  prerequisiteTaskId String?
+  title              String
+  description        String
+  reason             String?
+  exercise           Json?
+  estimatedMinutes   Int               @default(15)
+  scheduledFor       DateTime
+  completedAt        DateTime?
+  qualityScore       Int?
+  selfRating         Int?
+  reflection         String?
+  attemptCount       Int               @default(0)
+  nextReviewAt       DateTime?
+  lastAttemptAt      DateTime?
+  createdAt          DateTime          @default(now())
+  modelVersion       String            @default("rules-v1")
+  promptVersion      String            @default("daily-task-v1")
+  generationReason   String?
+  generatedAt        DateTime          @default(now())
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path               LearningPath?     @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  event              Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  entity             Entity?           @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  prerequisite       LearningTask?     @relation("LearningTaskPrerequisite", fields: [prerequisiteTaskId], references: [id], onDelete: SetNull)
+  dependentTasks     LearningTask[]    @relation("LearningTaskPrerequisite")
+  attempts           LearningAttempt[]
+  reviews            LearningReview[]
 
   @@index([userId, scheduledFor])
+  @@index([userId, taskType, scheduledFor])
+  @@index([eventId])
+  @@index([entityId])
+  @@index([prerequisiteTaskId])
+}
+
+model LearningAttempt {
+  id                String       @id @default(cuid())
+  userId            String
+  taskId            String
+  answers           Json
+  score             Int
+  maxScore          Int
+  qualityScore      Int
+  feedback          Json
+  incorrectConcepts String[]
+  submittedAt       DateTime     @default(now())
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task              LearningTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId, submittedAt])
+  @@index([taskId, submittedAt])
+}
+
+model LearningReview {
+  id             String       @id @default(cuid())
+  userId         String
+  taskId         String
+  concept        String
+  prompt         String
+  options        Json?
+  correctAnswers Json
+  intervalDays   Int          @default(1)
+  easeFactor     Float        @default(2.5)
+  repetition     Int          @default(0)
+  dueAt          DateTime
+  lastReviewedAt DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           LearningTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId, concept])
+  @@index([userId, dueAt, resolvedAt])
+  @@index([taskId])
 }
 
 model ReportExport {
@@ -520,6 +591,7 @@ model Event {
   outgoingRelations EventRelation[] @relation("EventFrom")
   incomingRelations EventRelation[] @relation("EventTo")
   alerts            AlertDelivery[]
+  learningTasks     LearningTask[]
 
   @@index([topic])
 }
@@ -655,6 +727,7 @@ model Entity {
   mergesAsTarget    EntityMerge[]        @relation("EntityMergeTarget")
   subscriptions     EntitySubscription[]
   trendSubjects     TrendSubject[]
+  learningTasks     LearningTask[]
 
   @@unique([type, normalized])
   @@index([type, name])

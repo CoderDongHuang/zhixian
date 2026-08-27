@@ -1,11 +1,31 @@
 "use client";
-import { useState } from "react";
 
-export function TaskButton({ id, initialCompleted }: { id: string; initialCompleted: boolean }) {
-  const [completed, setCompleted] = useState(initialCompleted);
-  async function toggle() {
-    const response = await fetch(`/api/learning/tasks/${id}`, { method: "PATCH" });
-    if (response.ok) { const result = await response.json(); setCompleted(result.completed); if (result.completed) fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete_learning" }) }); }
+import { useState, type FormEvent } from "react";
+import type { PublicLearningExercise } from "@/lib/learning-policy";
+
+type Result = { qualityScore: number; score: number; maxScore: number; feedback: { id: string; correct: boolean; explanation: string }[]; reviewCount: number };
+
+export function TaskButton({ id, exercise, taskType, initialCompleted, initialQuality, blocked }: { id: string; exercise: PublicLearningExercise; taskType: string; initialCompleted: boolean; initialQuality: number | null; blocked: boolean }) {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [result, setResult] = useState<Result | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setLoading(true); setMessage(""); setResult(null);
+    const form = new FormData(event.currentTarget);
+    const answers = Object.fromEntries(exercise.questions.map((question) => [question.id, form.getAll(`question-${question.id}`)]));
+    const response = await fetch(`/api/learning/tasks/${id}/attempts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, output: form.get("output"), reflection: form.get("reflection"), selfRating: Number(form.get("selfRating")) }) });
+    const body = await response.json().catch(() => ({})); setLoading(false);
+    if (!response.ok) return setMessage(body.error || "提交失败，请稍后重试");
+    setResult(body); setMessage(`质量得分 ${body.qualityScore}，知识检查 ${body.score}/${body.maxScore}${body.reviewCount ? `，已加入 ${body.reviewCount} 个错题复习` : ""}`);
+    void fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete_learning", value: body.qualityScore / 100 }) });
   }
-  return <button type="button" className={completed ? "secondary" : ""} onClick={toggle}>{completed ? "已完成" : "标记完成"}</button>;
+
+  return <form className="learning-exercise" onSubmit={submit}>
+    <div><strong>{taskType === "CODE" ? "代码产出" : "实践产出"}</strong><p>{exercise.deliverable}</p><textarea aria-label="实践产出" name="output" rows={6} minLength={30} maxLength={6000} required /></div>
+    <fieldset><legend>知识检查</legend>{exercise.questions.map((question) => <div className="learning-question" key={question.id}><strong>{question.prompt}</strong>{question.options.map((option) => <label key={option}><input type={question.kind === "multi" ? "checkbox" : "radio"} name={`question-${question.id}`} value={option} required={question.kind === "single"} /> <span>{option}</span></label>)}{result && <small className={result.feedback.find((item) => item.id === question.id)?.correct ? "answer-correct" : "answer-wrong"}>{result.feedback.find((item) => item.id === question.id)?.correct ? "回答正确" : `需要复习：${result.feedback.find((item) => item.id === question.id)?.explanation}`}</small>}</div>)}</fieldset>
+    <label className="learning-field"><span>完成质量自评</span><select name="selfRating" defaultValue="3" required><option value="1">1 · 需要重学</option><option value="2">2 · 理解较少</option><option value="3">3 · 基本掌握</option><option value="4">4 · 能够应用</option><option value="5">5 · 能够解释</option></select></label>
+    <label className="learning-field"><span>复盘</span><textarea name="reflection" rows={3} minLength={20} maxLength={2000} required placeholder="写下一个新认识和下一步验证方法" /></label>
+    <div className="learning-submit"><button type="submit" disabled={loading || blocked}>{loading ? "评分中..." : blocked ? "先完成先修任务" : initialCompleted ? "再次提交" : "提交并评分"}</button>{initialCompleted && initialQuality !== null && !message && <small>上次质量得分 {initialQuality}</small>}{message && <small role="status">{message}</small>}</div>
+  </form>;
 }
