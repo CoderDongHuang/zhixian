@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.E2E_PORT || 3100);
+const browserChannel = process.env.E2E_BROWSER_CHANNEL || undefined;
+const headless = process.env.E2E_HEADFUL === "true" ? false : undefined;
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 45_000,
@@ -9,8 +11,15 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: `http://127.0.0.1:${port}`, trace: "retain-on-failure", screenshot: "only-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }, { name: "mobile-chrome", use: { ...devices["Pixel 7"] } }],
+  use: {
+    baseURL: `http://127.0.0.1:${port}`,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    channel: browserChannel,
+    headless,
+    launchOptions: browserChannel ? { ignoreDefaultArgs: ["--disable-background-networking"] } : undefined,
+  },
+  projects: [{ name: browserChannel ? `desktop-${browserChannel}` : "chromium", use: { ...devices["Desktop Chrome"] } }, { name: browserChannel ? `mobile-${browserChannel}` : "mobile-chrome", use: { ...devices["Pixel 7"] } }],
   webServer: {
     command: `node ./node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,

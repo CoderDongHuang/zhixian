@@ -20,8 +20,8 @@ test("learning fallback, replanning, and task completion", async ({ page }) => {
   await page.getByLabel("E2E AI Event").check(); await page.getByLabel("忽略证据").check();
   await page.getByLabel("完成质量自评").selectOption("4"); await page.getByLabel("复盘").fill("我会依据已发布分析继续检查原始来源，并验证事件影响和证据。");
   await page.getByRole("button", { name: "提交并评分" }).click(); await expect(page.getByRole("status")).toContainText("质量得分 63"); await expect(page.getByRole("status")).toContainText("已加入 1 个错题复习");
-  const due = await page.request.patch("/api/test/fixtures", { headers: { "x-e2e-secret": e2eSecret }, data: { action: "due-learning-reviews" } }); const reviewId = (await due.json()).reviewId;
-  const review = await page.request.post(`/api/learning/reviews/${reviewId}`, { data: { answers: ["E2E AI Event"] } }); expect(review.ok()).toBeTruthy(); expect((await review.json()).correct).toBe(true);
+  await page.request.patch("/api/test/fixtures", { headers: { "x-e2e-secret": e2eSecret }, data: { action: "due-learning-reviews" } });
+  await page.reload(); await page.getByLabel("E2E AI Event").last().check(); await page.getByRole("button", { name: "提交复习" }).click(); await expect(page.getByRole("status").last()).toContainText("回答正确");
   const preference = await page.request.post("/api/preferences", { data: { identity: "开发者", level: "初级", skillDirections: ["Python"], learningGoals: ["技术选型"], topics: ["AI 行业"], itemsPerDigest: 10 } });
   expect((await preference.json()).learningChanged).toBe(true);
   const regenerate = await page.request.post("/api/learning/path/regenerate"); expect(regenerate.ok()).toBeTruthy(); expect((await regenerate.json()).modelVersion).toBe("rules-v1");
