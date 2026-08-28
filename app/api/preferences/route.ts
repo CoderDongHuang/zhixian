@@ -8,6 +8,13 @@ const allowedCounts = new Set([5, 10, 20]);
 const allowedSkills = new Set(["AI 应用", "Java 后端", "Python", "前端", "暂未确定"]);
 const allowedGoals = new Set(["了解行业", "提升技能", "找工作", "技术选型", "创业研究"]);
 
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  const preference = await prisma.userPreference.findUnique({ where: { userId: user.id } });
+  return NextResponse.json({ preference });
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });

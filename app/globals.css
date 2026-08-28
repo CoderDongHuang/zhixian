@@ -66,7 +66,7 @@ blockquote { margin: 16px 0 0; padding: 14px 18px; border-left: 3px solid #176b4
 .interaction-bar form button { justify-self: start; }
 .interaction-bar small { width: 100%; color: #176b4d; }
 .library-shell { width: min(820px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 80px; }
-.keyword-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 12px; margin: 28px 0; }
+.keyword-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: flex-end; gap: 12px; margin: 28px 0; }
 .keyword-form label { display: grid; gap: 8px; color: #475467; font-size: 14px; }
 .keyword-form input[type="text"], .keyword-form input:not([type]) { min-height: 42px; padding: 9px 11px; border: 1px solid #cdd3da; border-radius: 6px; font: inherit; }
 .keyword-form .keyword-realtime { display: flex; align-items: center; min-height: 42px; white-space: nowrap; }
@@ -132,7 +132,7 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .learning-submit small, .answer-correct { color: #176b4d; }
 .answer-wrong { color: #b42318; }
 .review-section { padding: 28px 0; border-bottom: 1px solid #dfe3e8; }
-.review-section > header { display: flex; justify-content: space-between; align-items: end; gap: 20px; }
+.review-section > header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
 .review-section > header h2 { margin-top: 2px; }
 .review-section > header > span, .empty-learning { color: #667085; }
 .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -309,7 +309,7 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .subscription-grid h3 a, .subscription-event { text-decoration: none; }
 .subscription-grid p { color: #667085; }
 .subscription-event { padding-top: 8px; border-top: 1px solid #edf0f2; color: #176b4d; font-size: 14px; }
-.research-create { display: grid; grid-template-columns: minmax(160px, .7fr) minmax(220px, 1.3fr) auto; gap: 12px; align-items: end; margin: 16px 0 24px; }
+.research-create { display: grid; grid-template-columns: minmax(160px, .7fr) minmax(220px, 1.3fr) auto; gap: 12px; align-items: flex-end; margin: 16px 0 24px; }
 .research-create label { display: grid; gap: 6px; color: #667085; font-size: 13px; }
 .research-create small { grid-column: 1 / -1; }
 .collection-list { display: grid; gap: 20px; }
