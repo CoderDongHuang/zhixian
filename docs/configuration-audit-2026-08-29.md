@@ -51,6 +51,8 @@ GitHub 账户持有人应在浏览器打开 **Settings → Billing & licensing �
 
 质量门禁现已按 Git ref 加并发取消，同一分支的新提交会取消旧的排队/运行检查，避免重复消耗 Actions 分钟；这不能绕过当前账单额度，但可减少后续浪费。
 
+设备授权恢复后实测：GitHub Free 账户在 2026 年 8 月账期 `zhixian` 已消耗 2740 个 Actions Linux 分钟（标价约 16.44 美元，当前净额为 0），超过免费额度后的 main 运行 `33257624791` 和 `33257807899` 均在 4 秒内结束，作业步骤数为 0。该现象确认是账户 spending limit/额度阻断，而非仓库代码失败。
+
 ## 本轮工作流修复
 
 `content-pipeline.yml` 原先设置 `TZ: Asia/Shanghai` 却使用 `date -u` 读取 UTC 时间，恢复调度时会在错误的小时生成早报、晚报或周报。现已改用 `TZ=Asia/Shanghai date`，并增加 `content-pipeline` 并发锁，防止重复运行造成重复内容和推送。
