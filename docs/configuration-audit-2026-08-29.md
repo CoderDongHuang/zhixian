@@ -49,6 +49,8 @@ GitHub 账户持有人应在浏览器打开 **Settings → Billing & licensing �
 4. 若不希望产生付费，等待下个账单周期重置、减少运行频率/矩阵，或将公开仓库的 Actions 与私有生产任务分开。公开仓库与私有仓库的免费分钟政策不同，以当前 GitHub 账户页面显示为准。
 5. 账单恢复后先手动运行 `V0.4 quality gate`，再按 `docs/mobile/release-runbook.md` 顺序运行数据库迁移、内容流水线、简报投递和回执任务。当前生产定时工作流仍是手动触发，避免恢复后产生重复投递。
 
+质量门禁现已按 Git ref 加并发取消，同一分支的新提交会取消旧的排队/运行检查，避免重复消耗 Actions 分钟；这不能绕过当前账单额度，但可减少后续浪费。
+
 ## 本轮工作流修复
 
 `content-pipeline.yml` 原先设置 `TZ: Asia/Shanghai` 却使用 `date -u` 读取 UTC 时间，恢复调度时会在错误的小时生成早报、晚报或周报。现已改用 `TZ=Asia/Shanghai date`，并增加 `content-pipeline` 并发锁，防止重复运行造成重复内容和推送。
