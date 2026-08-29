@@ -35,6 +35,8 @@
 - 移动发布相关 `EXPO_TOKEN`、`EXPO_PUBLIC_EAS_PROJECT_ID`、`SENTRY_AUTH_TOKEN`、`SENTRY_ORG`、`SENTRY_PROJECT`、`EXPO_PUBLIC_SENTRY_DSN`
 - `ALERT_EMAIL_TO`（开启失败告警邮件时）
 
+GitHub 仓库 Secret 名称已通过 CLI 核对：核心发行项 `DATABASE_URL`、`DIRECT_URL`、AI、邮件、Embedding、VAPID、Expo 和 Sentry 均已存在（共 32 个 Secret）。仓库 Variables 当前为空，因此趋势工作流的 `GITHUB_TREND_REPOS`、`TREND_PAPER_TOPICS_JSON`、`TREND_FEEDS_JSON` 不会采集专用外部趋势源；这是待业务授权的数据源配置，不是质量门禁的运行阻断。
+
 没有业务选择或平台授权前，不应伪造趋势源、招聘源、模型/论文许可或第三方 Token。`.env.example` 已列出完整变量和安全约束。
 
 ## GitHub Actions 账单与额度
