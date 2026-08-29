@@ -4,6 +4,10 @@ on:
   # Scheduled production automation is paused. See README.md before restoring it.
   workflow_dispatch:
 
+concurrency:
+  group: content-pipeline
+  cancel-in-progress: false
+
 jobs:
   update-content:
     runs-on: ubuntu-latest
@@ -26,8 +30,8 @@ jobs:
       - name: Generate scheduled digest
         shell: bash
         run: |
-          hour="$(date -u +%H)"
-          weekday="$(date -u +%u)"
+          hour="$(TZ=Asia/Shanghai date +%H)"
+          weekday="$(TZ=Asia/Shanghai date +%u)"
           if [ "$weekday" = "7" ] && [ "$hour" = "01" ]; then npm run digest:weekly;
           elif [ "$hour" = "00" ]; then npm run digest:morning;
           else npm run digest:evening; fi
