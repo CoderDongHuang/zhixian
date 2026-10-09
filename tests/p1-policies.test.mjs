@@ -33,10 +33,14 @@ test("ordered-title clustering preserves direction while matching related titles
 });
 
 test("trusted official single sources can publish while community-only items stay capped", () => {
-  const official = [{ document: { sourceId: "official", source: { type: "OFFICIAL_BLOG", trustScore: 0.95 } } }];
-  const community = [{ document: { sourceId: "community", source: { type: "HACKER_NEWS", trustScore: 0.9 } } }];
+  const official = [{ document: { content: "a located supporting quote", sourceId: "official", source: { type: "OFFICIAL_BLOG", trustScore: 0.95 } } }];
+  const community = [{ document: { content: "a located supporting quote", sourceId: "community", source: { type: "HACKER_NEWS", trustScore: 0.9 } } }];
+  const evidence = [{ quote: "a located supporting quote", stance: "SUPPORT" }];
   assert.deepEqual(confidenceCap(official), { cap: 0.9, reason: "trusted-single-source:OFFICIAL_BLOG" });
-  assert.equal(publicationDecision(official, 0.84, []).publish, true);
+  assert.equal(publicationDecision(official, 0.84, [], evidence).publish, true);
+  assert.equal(publicationDecision(official, 1, []).publish, false);
+  assert.equal(publicationDecision(official, 1, [], [{ quote: "not located in the source", stance: "SUPPORT" }]).publish, false);
+  assert.equal(publicationDecision(official, 1, [], [...evidence, { ...evidence[0], stance: "CONFLICT" }]).publish, false);
   assert.equal(publicationDecision(official, 0.84, ["unsupported"]).publish, false);
-  assert.deepEqual(publicationDecision(community, 0.95, []), { confidence: 0.74, publish: false, reason: "unverified-single-source" });
+  assert.deepEqual(publicationDecision(community, 0.95, [], evidence), { confidence: 0.74, publish: false, reason: "unverified-single-source" });
 });

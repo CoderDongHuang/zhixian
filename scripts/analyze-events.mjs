@@ -1,7 +1,7 @@
 import { PrismaClient, ReviewStatus } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
 import { finishJob } from "./job-policy.mjs";
-import { publicationDecision } from "./analysis-policy.mjs";
+import { analysisConfidence, publicationDecision } from "./analysis-policy.mjs";
 import { saveCurrentAnalysis } from "./analysis-storage.mjs";
 import { normalizeEvidenceCandidates } from "../lib/evidence-policy.mjs";
 
@@ -38,13 +38,13 @@ for (const event of events) {
     }).join("\n\n");
     const analysis = await callModel({ ...primary, system: primarySystem, user: materials });
     const verification = await callModel({ ...verifier, system: verifierSystem, user: `${materials}\n\n待核验分析：\n${JSON.stringify(analysis)}`, maxTokens: 800 });
-    const trustScore = event.documents.reduce((sum, item) => sum + item.document.source.trustScore, 0) / Math.max(event.documents.length, 1);
     const factuality = Number(verification.factuality) || 0;
     const relevance = Number(verification.relevance) || 0;
     const completeness = Number(verification.completeness) || 0;
-    const calculatedConfidence = factuality * 0.5 + relevance * 0.15 + completeness * 0.15 + trustScore * 0.2;
+    const calculatedConfidence = analysisConfidence(event.documents, verification);
     const unsupportedClaims = Array.isArray(verification.unsupportedClaims) ? verification.unsupportedClaims : [];
-    const decision = publicationDecision(event.documents, calculatedConfidence, unsupportedClaims);
+    const candidates = normalizeEvidenceCandidates(analysis.evidence, analysis.evidenceQuotes);
+    const decision = publicationDecision(event.documents, calculatedConfidence, unsupportedClaims, candidates);
     const confidence = decision.confidence;
     const status = decision.publish ? ReviewStatus.AUTO_PUBLISHED : ReviewStatus.PENDING_REVIEW;
     const facts = Array.isArray(analysis.facts) ? analysis.facts : [];
@@ -55,7 +55,7 @@ for (const event of events) {
       developerImpact: String(analysis.developerImpact ?? ""), learnerAdvice: String(analysis.learnerAdvice ?? ""), facts: JSON.stringify(facts), predictions: JSON.stringify(predictions),
       verificationNotes: JSON.stringify({ notes: verification.notes ?? "", unsupportedClaims, factuality, relevance, completeness, publicationPolicy: decision.reason }), confidence, status,
       modelVersion: primary.model, verifierModel: verifier.model, promptVersion: "day5-v1",
-    }, normalizeEvidenceCandidates(analysis.evidence, analysis.evidenceQuotes), importance);
+    }, candidates, importance);
     if (!created) { superseded++; continue; }
     if (status === ReviewStatus.AUTO_PUBLISHED) {
       published++;

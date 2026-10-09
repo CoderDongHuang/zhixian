@@ -10,14 +10,15 @@ export function analysisManifest(event) {
   }));
 }
 
-export async function saveCurrentAnalysis(prisma, event, data, candidates, importance) {
+export async function saveCurrentAnalysis(prisma, event, data, candidates, importance, replaces = null) {
   return prisma.$transaction(async (tx) => {
     const [current] = await tx.$queryRaw`SELECT "materialRevision" FROM "Event" WHERE id = ${event.id} FOR UPDATE`;
     if (!current || current.materialRevision !== event.materialRevision) return null;
-    if (await tx.analysis.count({ where: { eventId: event.id, status: { not: "STALE" } } })) return null;
+    const latest = await tx.analysis.findFirst({ where: { eventId: event.id }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }] });
+    if (replaces ? latest?.id !== replaces || latest.status !== "PENDING_REVIEW" : await tx.analysis.count({ where: { eventId: event.id, status: { not: "STALE" } } })) return null;
     const manifest = analysisManifest(event);
     const created = await tx.analysis.create({ data: {
-      ...data, eventId: event.id, inputRevision: event.materialRevision, inputManifest: manifest,
+      ...data, analyzedAt: new Date(Math.max(Date.now(), (latest?.analyzedAt.getTime() ?? 0) + 1)), eventId: event.id, inputRevision: event.materialRevision, inputManifest: manifest,
       evidence: { create: normalizeEvidenceCandidates(candidates).flatMap((candidate) => {
         const matching = manifest.find((document) => document.content.includes(candidate.quote));
         return matching ? [{ documentId: matching.id, quote: candidate.quote, stance: candidate.stance }] : [];
