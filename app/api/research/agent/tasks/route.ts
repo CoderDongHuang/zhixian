@@ -23,12 +23,14 @@ export async function POST(request: Request) {
   if (body.mode === "COMPARE" && (targetKeys.length !== 2 || new Set(targetKeys).size !== 2)) return Response.json({ error: "请选择两个不同的比较对象" }, { status: 400 });
   const recentTasks = await prisma.researchAgentTask.count({ where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } } });
   if (recentTasks >= RESEARCH_AGENT_TASKS_PER_HOUR) return Response.json({ error: "研究任务创建过于频繁，请稍后再试" }, { status: 429, headers: { "Retry-After": "3600" } });
-  const prepared = await collectResearchEvidence(user.id, collectionId, body.mode, body.mode === "COMPARE" ? targetKeys : []);
+  const createdAt = new Date();
+  const prepared = await collectResearchEvidence(user.id, collectionId, body.mode, body.mode === "COMPARE" ? targetKeys : [], createdAt);
   if (!prepared) return Response.json({ error: "专题不存在" }, { status: 404 });
   const status = prepared.refusalReason ? "REFUSED" : "AWAITING_CONFIRMATION";
   const task = await prisma.researchAgentTask.create({
     data: {
       userId: user.id,
+      createdAt,
       collectionId,
       question,
       mode: body.mode,

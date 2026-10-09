@@ -69,7 +69,11 @@ export function normalizeEvidence(evidence: ResearchAgentEvidence[]) {
     return [{ ...item, documentTitle: compact(item.documentTitle, 240), sourceName: compact(item.sourceName, 120), quote: item.quote.slice(0, RESEARCH_AGENT_EVIDENCE_TEXT_MAX), targetTitle: compact(item.targetTitle, 240), eventTitle: item.eventTitle ? compact(item.eventTitle, 240) : null }];
   });
   const grouped = new Map<string, ResearchAgentEvidence[]>();
-  for (const item of unique) grouped.set(item.targetId, [...(grouped.get(item.targetId) || []), item]);
+  unique.sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt) || a.id.localeCompare(b.id));
+  for (const item of unique) {
+    const key = `${item.targetType}:${item.targetId}`;
+    grouped.set(key, [...(grouped.get(key) || []), item]);
+  }
   const groups = [...grouped.values()];
   const balanced: ResearchAgentEvidence[] = [];
   for (let index = 0; balanced.length < RESEARCH_AGENT_MAX_EVIDENCE; index++) {
@@ -88,7 +92,7 @@ export function filterEvidenceForMode(evidence: ResearchAgentEvidence[], mode: R
   const cutoff = now - 30 * 86_400_000;
   return evidence.filter((item) => {
     const occurredAt = Date.parse(item.occurredAt);
-    return Number.isFinite(occurredAt) && occurredAt >= cutoff && occurredAt <= now + 86_400_000;
+    return Number.isFinite(occurredAt) && occurredAt >= cutoff && occurredAt <= now;
   });
 }
 

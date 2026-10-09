@@ -79,6 +79,15 @@ test("model output parser rejects malformed JSON and citations outside the snaps
   assert.throws(() => parseResearchModelAnswer(unsupported, [evidence("ev-1")]), /invalid citations|unsupported claims/);
 });
 
+test("30-day boundaries are inclusive with no future grace and filtering precedes truncation", () => {
+  const cutoff = now.getTime() - 30 * 86_400_000;
+  const times = [cutoff - 1, cutoff, cutoff + 1, now.getTime() - 1, now.getTime(), now.getTime() + 1, now.getTime() + 12 * 3_600_000];
+  const items = times.map((time, index) => evidence(`boundary-${index}`, { occurredAt: new Date(time).toISOString() }));
+  assert.deepEqual(filterEvidenceForMode(items, "CHANGES_30D", now.getTime()).map((item) => item.id), ["boundary-1", "boundary-2", "boundary-3", "boundary-4"]);
+  const old = Array.from({ length: 80 }, (_, index) => evidence(`old-${index}`, { targetId: "A", occurredAt: new Date(cutoff - 1).toISOString() }));
+  assert.equal(normalizeEvidence(filterEvidenceForMode([...old, evidence("new", { targetId: "A" })], "CHANGES_30D", now.getTime()))[0].id, "new");
+});
+
 test("known IDs cannot endorse unrelated claims, free inference, wrong offsets or summaries", () => {
   const original = evidence("a");
   const answer = buildRuleBasedAnswer("问答", "QUESTION", ["A"], [original]);

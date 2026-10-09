@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { frozenDocuments, locateFrozenQuote } from "@/lib/research-evidence";
 import {
@@ -22,7 +22,7 @@ function digestEventIds(content: unknown) {
   if (!content || typeof content !== "object") return [];
   const items = (content as { items?: unknown }).items;
   if (!Array.isArray(items)) return [];
-  return items.flatMap((item) => item && typeof item === "object" && typeof (item as { eventId?: unknown }).eventId === "string" ? [(item as { eventId: string }).eventId] : []).slice(0, 50);
+  return items.flatMap((item) => item && typeof item === "object" && typeof (item as { eventId?: unknown }).eventId === "string" ? [(item as { eventId: string }).eventId] : []);
 }
 
 function safeSourceUrl(value: string) {
@@ -54,32 +54,44 @@ export async function collectResearchEvidence(userId: string, collectionId: stri
   const allowedTargets = new Set(targetKeys);
   const scopedItems = allowedTargets.size ? collection.items.filter((item) => allowedTargets.has(`${item.targetType}:${item.targetId}`)) : collection.items;
   const targets: EvidenceTarget[] = scopedItems.slice(0, 30).map((item) => ({ ...item, eventIds: new Set(item.targetType === "EVENT" ? [item.targetId] : []) }));
-  const entityTargets = targets.filter((item) => item.targetType === "ENTITY");
   const digestTargets = targets.filter((item) => item.targetType === "DIGEST");
-
-  const [entities, digests] = await Promise.all([
-    entityTargets.length ? prisma.entity.findMany({
-      where: { id: { in: entityTargets.map((item) => item.targetId) } },
-      select: { id: true, mentions: { take: 50, select: { eventId: true } } },
-    }) : Promise.resolve([]),
-    digestTargets.length ? prisma.digest.findMany({ where: { id: { in: digestTargets.map((item) => item.targetId) } }, select: { id: true, content: true } }) : Promise.resolve([]),
-  ]);
-
-  for (const entity of entities) {
-    const target = targets.find((item) => item.targetType === "ENTITY" && item.targetId === entity.id);
-    if (target) for (const mention of entity.mentions) if (mention.eventId) target.eventIds.add(mention.eventId);
-  }
+  const digests = digestTargets.length ? await prisma.digest.findMany({ where: { id: { in: digestTargets.map((item) => item.targetId) } }, select: { id: true, content: true } }) : [];
   for (const digest of digests) {
     const target = targets.find((item) => item.targetType === "DIGEST" && item.targetId === digest.id);
     if (target) for (const eventId of digestEventIds(digest.content)) target.eventIds.add(eventId);
   }
 
-  const eventIds = [...new Set(targets.flatMap((target) => [...target.eventIds]))].slice(0, 120);
+  // Filter frozen material dates before LIMIT, independently for every object.
+  for (const target of targets) {
+    const scope = target.targetType === "ENTITY"
+      ? Prisma.sql`EXISTS (SELECT 1 FROM "EntityMention" m WHERE m."eventId" = e.id AND m."entityId" = ${target.targetId})`
+      : target.eventIds.size ? Prisma.sql`e.id IN (${Prisma.join([...target.eventIds])})` : Prisma.sql`FALSE`;
+    const lower = mode === "CHANGES_30D" ? Prisma.sql`AND stamp >= ${new Date(now.getTime() - 30 * 86_400_000)}` : Prisma.empty;
+    const selected = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT e.id FROM "Event" e
+      JOIN LATERAL (
+        SELECT a."inputManifest", a."analyzedAt" FROM "Analysis" a
+        WHERE a."eventId" = e.id AND a.status = 'AUTO_PUBLISHED' AND a."analyzedAt" <= ${now}
+        ORDER BY a."analyzedAt" DESC, a.id DESC LIMIT 1
+      ) a ON TRUE
+      JOIN LATERAL (
+        SELECT MAX(stamp) AS newest FROM (
+          SELECT CASE WHEN item->>'publishedAt' IS NULL THEN a."analyzedAt"
+            WHEN pg_input_is_valid(item->>'publishedAt', 'timestamp with time zone')
+            THEN (item->>'publishedAt')::timestamptz END AS stamp
+          FROM jsonb_array_elements(CASE WHEN jsonb_typeof(a."inputManifest") = 'array' THEN a."inputManifest" ELSE '[]'::jsonb END) item
+          UNION ALL SELECT a."analyzedAt" WHERE a."inputManifest" IS NULL OR a."inputManifest" = 'null'::jsonb OR a."inputManifest" = '[]'::jsonb
+        ) dates WHERE stamp <= ${now} ${lower}
+      ) dates ON dates.newest IS NOT NULL
+      WHERE ${scope} ORDER BY dates.newest DESC, e.id ASC LIMIT 40
+    `);
+    target.eventIds = new Set(selected.map((event) => event.id));
+  }
+  const eventIds = [...new Set(targets.flatMap((target) => [...target.eventIds]))];
   const events = eventIds.length ? await prisma.event.findMany({
     where: { id: { in: eventIds }, analyses: { some: { status: "AUTO_PUBLISHED" } } },
     include: {
-      analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1, include: { evidence: { include: { document: { include: { source: true } } } } } },
-      documents: { include: { document: { include: { source: true } } } },
+      analyses: { where: { status: "AUTO_PUBLISHED", analyzedAt: { lte: now } }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1, include: { evidence: true } },
     },
   }) : [];
   const eventMap = new Map(events.map((event) => [event.id, event]));
@@ -114,7 +126,7 @@ export async function collectResearchEvidence(userId: string, collectionId: stri
     }
   }
 
-  const evidence = filterEvidenceForMode(normalizeEvidence(raw), mode, now.getTime());
+  const evidence = normalizeEvidence(filterEvidenceForMode(raw, mode, now.getTime()));
   const subjects = targets.map((item) => item.targetTitle);
   return { collection, subjects, evidence, outline: buildResearchOutline(mode, subjects, evidence.length, now), refusalReason: researchAgentRefusal(mode, subjects, evidence) };
 }
