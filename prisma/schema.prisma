@@ -365,6 +365,8 @@ model LearningTask {
   exercise           Json?
   estimatedMinutes   Int               @default(15)
   scheduledFor       DateTime
+  dayKey             String?
+  dayTimezone        String?
   completedAt        DateTime?
   qualityScore       Int?
   selfRating         Int?
@@ -387,6 +389,7 @@ model LearningTask {
   reviews            LearningReview[]
 
   @@index([userId, scheduledFor])
+  @@unique([userId, pathId, dayKey])
   @@index([userId, taskType, scheduledFor])
   @@index([eventId])
   @@index([entityId])

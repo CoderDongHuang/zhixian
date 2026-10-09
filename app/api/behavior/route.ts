@@ -28,8 +28,8 @@ export async function POST(request: Request) {
   if (contentRequired.has(body.action) && !feedItemId && !suppliedEventId) return NextResponse.json({ error: "缺少内容标识" }, { status: 400 });
 
   const [feedItem, suppliedEvent] = await Promise.all([
-    feedItemId ? prisma.feedItem.findUnique({ where: { id: feedItemId }, select: { eventId: true, event: { select: { topic: true } } } }) : null,
-    suppliedEventId && !feedItemId ? prisma.event.findUnique({ where: { id: suppliedEventId }, select: { id: true, topic: true } }) : null,
+    feedItemId ? prisma.feedItem.findUnique({ where: { id: feedItemId, event: { isPublic: true } }, select: { eventId: true, event: { select: { topic: true } } } }) : null,
+    suppliedEventId && !feedItemId ? prisma.event.findUnique({ where: { id: suppliedEventId, isPublic: true }, select: { id: true, topic: true } }) : null,
   ]);
   if (feedItemId && !feedItem) return NextResponse.json({ error: "内容不存在" }, { status: 404 });
   if (suppliedEventId && feedItem && suppliedEventId !== feedItem.eventId) return NextResponse.json({ error: "内容关联不匹配" }, { status: 400 });

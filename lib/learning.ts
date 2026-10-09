@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { learningDayKey, learningTimezone } from "@/lib/learning-day";
 import { DAILY_TASK_PROMPT_VERSION, LEARNING_PATH_PROMPT_VERSION, buildRuleLearningOutline, generateDailyTaskWithAi, generateLearningPathWithAi, type AiLearningPath, type DailyCandidate, type LearningContext, type LearningOutlineItem, type ModelConfig } from "@/lib/learning-ai";
 import { chooseAdaptiveTaskType, safeLearningModelConfig, type LearningExercise } from "@/lib/learning-policy";
 
@@ -62,6 +63,7 @@ async function generatePathData(userId: string) {
 export async function regenerateLearningPath(userId: string) {
   const data = await generatePathData(userId);
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
     await tx.learningPath.updateMany({ where: { userId, active: true }, data: { active: false } });
     return tx.learningPath.create({ data: { userId, ...data } });
   });
@@ -70,20 +72,42 @@ export async function regenerateLearningPath(userId: string) {
 export async function ensureLearningPath(userId: string) {
   const existing = await prisma.learningPath.findFirst({ where: { userId, active: true }, orderBy: { updatedAt: "desc" } });
   if (existing) return existing;
-  return prisma.learningPath.create({ data: { userId, ...(await generatePathData(userId)) } });
+  const data = await generatePathData(userId);
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+    return await tx.learningPath.findFirst({ where: { userId, active: true } }) || tx.learningPath.create({ data: { userId, ...data } });
+  });
 }
 
-export async function ensureDailyTask(userId: string) {
-  const start = new Date(); start.setHours(0, 0, 0, 0);
-  const end = new Date(start); end.setDate(end.getDate() + 1);
+export async function currentLearningDay(userId: string, now = new Date()) {
+  const preference = await prisma.userPreference.findUnique({ where: { userId }, select: { timezone: true } });
+  const timezone = learningTimezone(preference?.timezone);
+  return { dayKey: learningDayKey(now, timezone), timezone };
+}
+
+export async function ensureDailyTask(userId: string): Promise<import("@prisma/client").LearningTask> {
   const path = await ensureLearningPath(userId);
-  const existing = await prisma.learningTask.findFirst({ where: { userId, pathId: path.id, taskType: { not: "REVIEW" }, scheduledFor: { gte: start, lt: end } }, orderBy: { createdAt: "desc" } });
+  const { dayKey, timezone } = await currentLearningDay(userId);
+  const existing = await prisma.learningTask.findUnique({ where: { userId_pathId_dayKey: { userId, pathId: path.id, dayKey } } });
   if (existing) return existing;
+  const saveTask = async (data: Prisma.LearningTaskUncheckedCreateInput) => {
+    const saved = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+      const active = await tx.learningPath.findUnique({ where: { id: path.id }, select: { active: true } });
+      if (!active?.active) return null;
+      const preference = await tx.userPreference.findUnique({ where: { userId }, select: { timezone: true } });
+      const currentZone = learningTimezone(preference?.timezone);
+      const currentDay = learningDayKey(new Date(), currentZone);
+      if (currentDay !== dayKey || currentZone !== timezone) return null;
+      return tx.learningTask.upsert({ where: { userId_pathId_dayKey: { userId, pathId: path.id, dayKey } }, update: {}, create: { ...data, dayKey, dayTimezone: timezone } });
+    });
+    return saved || ensureDailyTask(userId);
+  };
   const recentTasks = await prisma.learningTask.findMany({ where: { userId, taskType: { not: "REVIEW" } }, select: { id: true, pathId: true, eventId: true, title: true, completedAt: true, qualityScore: true, exercise: true }, orderBy: { createdAt: "desc" }, take: 14 });
   const recentEventIds = recentTasks.flatMap((item) => item.eventId ? [item.eventId] : []);
   const { context } = await learningContext(userId);
   const topicPool = [...new Set([...path.topics, ...context.preferredTopics, ...context.behaviorTopics.map((item) => item.topic)])].filter(Boolean);
-  const candidateSelect = { eventId: true, event: { select: { topic: true, title: true, importance: true, analyses: { where: { status: "AUTO_PUBLISHED" as const }, orderBy: { analyzedAt: "desc" as const }, take: 1, select: { summary: true, learnerAdvice: true } }, mentions: { take: 1, select: { entity: { select: { id: true, name: true } } } } } } };
+  const candidateSelect = { eventId: true, event: { select: { topic: true, title: true, importance: true, analyses: { where: { status: "AUTO_PUBLISHED" as const }, orderBy: [{ analyzedAt: "desc" as const }, { id: "desc" as const }], take: 1, select: { summary: true, learnerAdvice: true } }, mentions: { take: 1, select: { entity: { select: { id: true, name: true } } } } } } };
   let feedItems = await prisma.feedItem.findMany({ where: { eventId: { notIn: recentEventIds }, event: { topic: { in: topicPool }, isPublic: true } }, select: candidateSelect, orderBy: [{ event: { importance: "desc" } }, { publishedAt: "desc" }], take: 8 });
   if (!feedItems.length) feedItems = await prisma.feedItem.findMany({ where: { eventId: { notIn: recentEventIds }, event: { isPublic: true } }, select: candidateSelect, orderBy: [{ event: { importance: "desc" } }, { publishedAt: "desc" }], take: 8 });
   const candidates: DailyCandidate[] = feedItems.map((item) => ({ eventId: item.eventId, topic: item.event.topic || "AI 行业", title: item.event.title, eventTitle: item.event.title, summary: item.event.analyses[0]?.summary || item.event.title, learnerAdvice: item.event.analyses[0]?.learnerAdvice || null, entityId: item.event.mentions[0]?.entity.id || null, entityName: item.event.mentions[0]?.entity.name || null }));
@@ -110,12 +134,12 @@ export async function ensureDailyTask(userId: string) {
       const aiPath: AiLearningPath = { title: path.title, goal: path.goal, topics: path.topics, outline, reason: path.generationReason || "当前学习路线" };
       const result = await generateDailyTaskWithAi({ ...context, path: aiPath, candidates, recentEventIds }, config);
       const selected = candidates.find((candidate) => candidate.eventId === result.eventId) || candidates[0];
-      return prisma.learningTask.create({ data: { userId, pathId: path.id, eventId: selected?.eventId || null, entityId: selected?.entityId || null, taskType, prerequisiteTaskId, title: result.title, description: result.description, reason: result.reason, exercise: buildExercise(selected) as unknown as Prisma.InputJsonValue, estimatedMinutes: 15, scheduledFor: new Date(), modelVersion: config.model, promptVersion: DAILY_TASK_PROMPT_VERSION, generationReason: result.reason } });
+      return saveTask({ userId, pathId: path.id, eventId: selected?.eventId || null, entityId: selected?.entityId || null, taskType, prerequisiteTaskId, title: result.title, description: result.description, reason: result.reason, exercise: buildExercise(selected) as unknown as Prisma.InputJsonValue, estimatedMinutes: 15, scheduledFor: new Date(), modelVersion: config.model, promptVersion: DAILY_TASK_PROMPT_VERSION, generationReason: result.reason });
     } catch {
       console.warn(JSON.stringify({ type: "learning-ai-fallback", operation: "daily-task", reason: "model_request_failed" }));
     }
   }
   const candidate = candidates[0];
   const titlePrefix = taskType === "CODE" ? "代码实践" : "事件实践";
-  return prisma.learningTask.create({ data: { userId, pathId: path.id, eventId: candidate?.eventId, entityId: candidate?.entityId, taskType, prerequisiteTaskId, title: candidate ? `${titlePrefix}：${candidate.eventTitle || candidate.title}` : `实践：${path.topics[0]} 的三个核心概念`, description: candidate?.learnerAdvice || buildExercise(candidate).deliverable, reason: `与你的“${path.goal}”目标和 ${path.level} 阶段匹配；最近质量${recentQuality === null ? "尚无基线" : `为 ${recentQuality} 分`}，已自适应为${taskType === "CODE" ? "代码" : "实践"}任务`, exercise: buildExercise(candidate) as unknown as Prisma.InputJsonValue, estimatedMinutes: 15, scheduledFor: new Date(), modelVersion: "rules-v1", promptVersion: DAILY_TASK_PROMPT_VERSION, generationReason: config ? "AI 生成不可用，已回退规则任务" : "未配置学习模型，使用规则任务" } });
+  return saveTask({ userId, pathId: path.id, eventId: candidate?.eventId, entityId: candidate?.entityId, taskType, prerequisiteTaskId, title: candidate ? `${titlePrefix}：${candidate.eventTitle || candidate.title}` : `实践：${path.topics[0]} 的三个核心概念`, description: candidate?.learnerAdvice || buildExercise(candidate).deliverable, reason: `与你的“${path.goal}”目标和 ${path.level} 阶段匹配；最近质量${recentQuality === null ? "尚无基线" : `为 ${recentQuality} 分`}，已自适应为${taskType === "CODE" ? "代码" : "实践"}任务`, exercise: buildExercise(candidate) as unknown as Prisma.InputJsonValue, estimatedMinutes: 15, scheduledFor: new Date(), modelVersion: "rules-v1", promptVersion: DAILY_TASK_PROMPT_VERSION, generationReason: config ? "AI 生成不可用，已回退规则任务" : "未配置学习模型，使用规则任务" });
 }

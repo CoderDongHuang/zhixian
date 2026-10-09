@@ -23,6 +23,8 @@ test("personal workspace works through visible page controls", async ({ page }) 
   await expect.poll(() => new URL(page.url()).searchParams.get("topic")).toBe("AI 行业");
   await page.getByRole("link", { name: "E2E AI 深度分析" }).first().click();
   await expect(page.getByRole("heading", { name: "证据对照" })).toBeVisible();
+  await page.getByRole("button", { name: "标记已读" }).click();
+  await expect(page.getByRole("button", { name: "已读", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "收藏", exact: true }).click();
   await expect(page.getByRole("button", { name: "已收藏" })).toBeVisible();
   await page.getByRole("button", { name: "有帮助" }).click();

@@ -32,10 +32,7 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
   });
   const analysis = event?.analyses[0]; if (!event || !analysis) notFound();
   const feedItem = event.feedItems[0]; if (!feedItem) notFound();
-  const [bookmark] = await Promise.all([
-    prisma.bookmark.findUnique({ where: { userId_feedItemId: { userId: user.id, feedItemId: feedItem.id } } }),
-    prisma.readHistory.upsert({ where: { userId_feedItemId: { userId: user.id, feedItemId: feedItem.id } }, update: { readAt: new Date() }, create: { userId: user.id, feedItemId: feedItem.id } }),
-  ]);
+  const bookmark = await prisma.bookmark.findUnique({ where: { userId_feedItemId: { userId: user.id, feedItemId: feedItem.id } } });
   const parseList = (value: string | null) => { try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : []; } catch { return []; } };
   const facts = parseList(analysis.facts); const predictions = parseList(analysis.predictions);
   const speechText = [analysis.summary, analysis.whyImportant, analysis.impact, analysis.developerImpact, analysis.learnerAdvice].filter(Boolean).join("。\n");

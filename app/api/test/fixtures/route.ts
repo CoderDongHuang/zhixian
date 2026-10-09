@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { learningDayKey } from "@/lib/learning-day";
 import { prisma } from "@/lib/prisma";
 
 const ids = {
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   ] });
   await prisma.learningPath.create({ data: { id: ids.path, userId: ids.users[0], title: "E2E 规则学习路线", goal: "提升技能", level: "入门", topics: ["AI 行业"], outline: [{ phase: "基础", objective: "掌握测试基础知识", weeks: 1, topics: ["概念", "实践"] }], modelVersion: "rules-v1", generationReason: "E2E fallback" } });
   await prisma.learningTask.create({ data: { id: "e2e-prerequisite", userId: ids.users[0], pathId: ids.path, taskType: "READING", title: "E2E 先修任务", description: "已完成的先修任务", scheduledFor: new Date(now.getTime() - 86400000), completedAt: now, qualityScore: 90, reason: "E2E", modelVersion: "rules-v1" } });
-  await prisma.learningTask.create({ data: { id: ids.task, userId: ids.users[0], pathId: ids.path, eventId: ids.events[0], entityId: ids.entities[0], prerequisiteTaskId: "e2e-prerequisite", taskType: "PRACTICE", title: "E2E 今日任务", description: "完成端到端测试任务", scheduledFor: now, reason: "E2E", modelVersion: "rules-v1", exercise: { version: 1, instructions: "完成测试实践", deliverable: "写出测试实践产出", questions: [
+  await prisma.learningTask.create({ data: { id: ids.task, dayKey: learningDayKey(now, "Asia/Shanghai"), dayTimezone: "Asia/Shanghai", userId: ids.users[0], pathId: ids.path, eventId: ids.events[0], entityId: ids.entities[0], prerequisiteTaskId: "e2e-prerequisite", taskType: "PRACTICE", title: "E2E 今日任务", description: "完成端到端测试任务", scheduledFor: now, reason: "E2E", modelVersion: "rules-v1", exercise: { version: 1, instructions: "完成测试实践", deliverable: "写出测试实践产出", questions: [
     { id: "event", concept: "事件识别", prompt: "任务绑定哪个事件？", kind: "single", options: ["E2E AI Event", "其他事件"], correctAnswers: ["E2E AI Event"], explanation: "任务绑定 E2E AI Event" },
     { id: "impact", concept: "事件影响", prompt: "哪个判断可信？", kind: "single", options: ["验证推荐和交互", "忽略证据"], correctAnswers: ["验证推荐和交互"], explanation: "已发布分析要求验证推荐和交互" },
   ] } } });

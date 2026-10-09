@@ -1,15 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 export function InteractionBar({ feedItemId, eventId, topic, speechText, initialBookmarked }: { feedItemId: string; eventId: string; topic: string; speechText: string; initialBookmarked: boolean }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [message, setMessage] = useState("");
   const [reporting, setReporting] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [read, setRead] = useState(false);
+  const [reading, setReading] = useState(false);
 
   const track = useCallback((action: string) => { fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, feedItemId, eventId, topic }) }).catch(() => undefined); }, [eventId, feedItemId, topic]);
-  useEffect(() => { track("read"); }, [track]);
+  async function markRead() {
+    setReading(true);
+    try {
+      const response = await fetch("/api/behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "read", feedItemId, eventId }) });
+      if (!response.ok) throw new Error("read_failed");
+      setRead(true); setMessage("已记录阅读");
+    } catch { setMessage("阅读记录保存失败，请重试"); }
+    finally { setReading(false); }
+  }
 
   async function toggleBookmark() {
     const response = await fetch(`/api/feed/${feedItemId}/bookmark`, { method: bookmarked ? "DELETE" : "POST" });
@@ -40,6 +50,6 @@ export function InteractionBar({ feedItemId, eventId, topic, speechText, initial
     track("share");
   }
 
-  return <aside className="interaction-bar"><button className="secondary" onClick={toggleBookmark}>{bookmarked ? "已收藏" : "收藏"}</button><button className="secondary" onClick={saveOffline}>离线阅读</button><button className="secondary" onClick={toggleSpeech}>{speaking ? "停止播报" : "语音播报"}</button><button className="secondary" onClick={share}>分享</button><span>这条分析有帮助吗？</span><button className="secondary" onClick={() => sendHelpful(true)}>有帮助</button><button className="secondary" onClick={() => sendHelpful(false)}>没帮助</button><button className="text-button" onClick={() => setReporting(!reporting)}>报告问题</button>
+  return <aside className="interaction-bar"><button className="secondary" disabled={reading || read} onClick={markRead}>{read ? "已读" : reading ? "记录中..." : "标记已读"}</button><button className="secondary" onClick={toggleBookmark}>{bookmarked ? "已收藏" : "收藏"}</button><button className="secondary" onClick={saveOffline}>离线阅读</button><button className="secondary" onClick={toggleSpeech}>{speaking ? "停止播报" : "语音播报"}</button><button className="secondary" onClick={share}>分享</button><span>这条分析有帮助吗？</span><button className="secondary" onClick={() => sendHelpful(true)}>有帮助</button><button className="secondary" onClick={() => sendHelpful(false)}>没帮助</button><button className="text-button" onClick={() => setReporting(!reporting)}>报告问题</button>
     {reporting && <form action={sendReport}><textarea name="report" required maxLength={1000} placeholder="请描述事实错误、翻译问题或不相关内容" /><button type="submit">提交</button></form>}{message && <small>{message}</small>}</aside>;
 }

@@ -30,9 +30,11 @@ export async function POST(request: Request) {
   const eveningTime = timePattern.test(body?.eveningTime) ? body.eveningTime : "20:00";
   const weeklyDay = Math.max(0, Math.min(6, Number(body?.weeklyDay) || 0));
   const dailyLearningTime = timePattern.test(body?.dailyLearningTime) ? body.dailyLearningTime : "07:30";
-  const delivery = { morningTime, eveningTime, timezone: "Asia/Shanghai", emailEnabled: Boolean(body?.emailEnabled), morningEnabled: Boolean(body?.morningEnabled), eveningEnabled: Boolean(body?.eveningEnabled), weeklyEnabled: Boolean(body?.weeklyEnabled), weeklyDay, dailyLearningEnabled: Boolean(body?.dailyLearningEnabled), dailyLearningTime };
-
   const previous = await prisma.userPreference.findUnique({ where: { userId: user.id } });
+  const timezone = typeof body?.timezone === "string" ? body.timezone : previous?.timezone || "Asia/Shanghai";
+  try { new Intl.DateTimeFormat("en", { timeZone: timezone }); } catch { return NextResponse.json({ error: "时区无效" }, { status: 400 }); }
+  const delivery = { morningTime, eveningTime, timezone, emailEnabled: Boolean(body?.emailEnabled), morningEnabled: Boolean(body?.morningEnabled), eveningEnabled: Boolean(body?.eveningEnabled), weeklyEnabled: Boolean(body?.weeklyEnabled), weeklyDay, dailyLearningEnabled: Boolean(body?.dailyLearningEnabled), dailyLearningTime };
+
   const learningPreference = { identity: body.identity || null, skillDirections, level: body.level || null, learningGoals, topics };
   await prisma.userPreference.upsert({
     where: { userId: user.id },
