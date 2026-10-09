@@ -5,13 +5,13 @@ import { createWebPushController } from "../lib/web-push-client.ts";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const never = <T>() => new Promise<T>(() => undefined);
 type Intent = { endpoint: string; enabled: boolean; changedAt: number; subscription?: PushSubscriptionJSON };
-function setup(options: { fetch?: typeof fetch; subscribe?: () => Promise<PushSubscription>; unsubscribe?: () => Promise<boolean>; readyHang?: boolean; current?: boolean } = {}) {
+function setup(options: { fetch?: typeof fetch; subscribe?: () => Promise<PushSubscription>; unsubscribe?: () => Promise<boolean>; writeFail?: boolean; readyHang?: boolean; current?: boolean } = {}) {
   let saved: Intent | null = null;
   let current = options.current ?? false;
   const methods: string[] = [];
   const subscription = { endpoint: "https://push.example.com/test", toJSON: () => ({ endpoint: "https://push.example.com/test", keys: { p256dh: "test", auth: "test" } }), unsubscribe: options.unsubscribe ?? (async () => { current = false; return true; }) } as unknown as PushSubscription;
   const controller = createWebPushController({
-    timeoutMs: 20, read: () => saved, write: (value) => { saved = value; }, permission: async () => "granted",
+    timeoutMs: 20, read: () => saved, write: (value) => { if (options.writeFail) throw new Error("storage unavailable"); saved = value; }, permission: async () => "granted",
     ready: async () => options.readyHang ? never() : ({ getSubscription: async () => current ? subscription : null, subscribe: options.subscribe ?? (async () => { current = true; return subscription; }) }),
     fetch: options.fetch ?? (async (_url, init) => { methods.push(init?.method ?? "GET"); return Response.json({ registered: true }); }),
   });
@@ -47,6 +47,16 @@ test("server save failure rolls back browser subscription", async () => {
   const env = setup({ fetch: async () => new Response(null, { status: 500 }) });
   await assert.rejects(env.controller.toggle(true), /同步失败/);
   assert.equal(env.saved()!.enabled, false);
+});
+test("storage failure still closes browser and server subscriptions", async () => {
+  let closed = 0;
+  const env = setup({ writeFail: true, unsubscribe: async () => { closed++; return true; } });
+  await assert.rejects(env.controller.toggle(true), /storage unavailable/);
+  assert.equal(closed, 1);
+  assert.deepEqual(env.methods, ["DELETE"]);
+  await assert.rejects(env.controller.toggle(false), /storage unavailable/);
+  assert.equal(closed, 2);
+  assert.deepEqual(env.methods, ["DELETE", "DELETE"]);
 });
 test("failed close persists tombstone and refresh retries instead of re-enabling", async () => {
   let failing = true;

@@ -34,7 +34,6 @@ export function createWebPushController(deps: Dependencies) {
   function intent(subscription: Subscription, enabled: boolean): Intent {
     clock = Math.max(Date.now(), clock + 1, (deps.read()?.changedAt ?? 0) + 1);
     const value = { endpoint: subscription.endpoint, enabled, changedAt: clock, ...(enabled ? { subscription: subscription.toJSON() } : {}) };
-    deps.write(value);
     return value;
   }
   function tombstone(saved: Intent): Intent {
@@ -47,6 +46,7 @@ export function createWebPushController(deps: Dependencies) {
     const value = intent(subscription, false);
     // Persist server tombstone even if browser unsubscribe hangs or throws.
     const results = await Promise.allSettled([
+      Promise.resolve().then(() => deps.write(value)),
       request("DELETE", value),
       bounded(subscription.unsubscribe()).then((ok) => { if (!ok) throw new Error("浏览器取消订阅失败，请重试"); }),
     ]);
@@ -97,8 +97,7 @@ export function createWebPushController(deps: Dependencies) {
         } catch (error) { late = true; throw error; }
         finally { if (!late) subscribing = false; }
       }
-      const value = intent(subscription, true);
-      try { await request("POST", value); }
+      try { const value = intent(subscription, true); deps.write(value); await request("POST", value); }
       catch (error) { await disable(subscription).catch(() => undefined); throw error; }
       return true;
     } finally { busy = false; }
