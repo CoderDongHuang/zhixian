@@ -3,6 +3,7 @@ import { isValidEmail, normalizeEmail } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
 import { authenticateMiniRequest } from "@/lib/mini-auth";
 import { prisma } from "@/lib/prisma";
+import { consumeOtp, InvalidAuthClaim } from "@/lib/auth-claim";
 
 export async function POST(request: Request) {
   const auth = await authenticateMiniRequest(request);
@@ -20,11 +21,13 @@ export async function POST(request: Request) {
   const target = await prisma.user.findUnique({ where: { email } });
   if (!otp || !target) return NextResponse.json({ error: "invalid code or account" }, { status: 401 });
   if (target.id === auth.user.id) {
-    const consumed = await prisma.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
+    const consumed = await prisma.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null, expiresAt: { gt: new Date() } }, data: { usedAt: now } });
     if (consumed.count !== 1) return NextResponse.json({ error: "invalid code or account" }, { status: 401 });
     return NextResponse.json({ ok: true, account: { linked: true, email } });
   }
-  await prisma.$transaction(async (tx) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+    await consumeOtp(tx, otp.id);
     const [bookmarks, reads] = await Promise.all([
       tx.bookmark.findMany({ where: { userId: auth.user.id }, select: { feedItemId: true, createdAt: true } }),
       tx.readHistory.findMany({ where: { userId: auth.user.id }, select: { feedItemId: true, readAt: true } }),
@@ -40,9 +43,11 @@ export async function POST(request: Request) {
     await tx.learningReview.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.wechatIdentity.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
     await tx.miniSession.updateMany({ where: { userId: auth.user.id }, data: { userId: target.id } });
-    const consumed = await tx.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
-    if (consumed.count !== 1) throw new Error("OTP was already consumed");
-  });
+    });
+  } catch (error) {
+    if (error instanceof InvalidAuthClaim) return NextResponse.json({ error: "invalid code or account" }, { status: 401 });
+    throw error;
+  }
   return NextResponse.json({ ok: true, account: { linked: true, email }, accessTokenInvalidated: true });
 }
 

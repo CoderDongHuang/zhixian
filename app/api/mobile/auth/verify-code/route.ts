@@ -3,6 +3,7 @@ import { isValidEmail, normalizeEmail } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
 import { createRefreshToken, miniRefreshExpiry, refreshTokenHash, tokenResponse } from "@/lib/mini-auth";
 import { prisma } from "@/lib/prisma";
+import { consumeOtp, InvalidAuthClaim } from "@/lib/auth-claim";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -21,14 +22,19 @@ export async function POST(request: Request) {
   if (!user || !otp) return NextResponse.json({ error: "验证码无效或已过期" }, { status: 401 });
 
   const refreshToken = createRefreshToken();
-  const session = await prisma.$transaction(async (tx) => {
-    const consumed = await tx.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
-    if (consumed.count !== 1) throw new Error("OTP was already consumed");
+  let session;
+  try {
+    session = await prisma.$transaction(async (tx) => {
+    await consumeOtp(tx, otp.id);
     return tx.miniSession.upsert({
       where: { userId_deviceId: { userId: user.id, deviceId } },
       update: { refreshTokenHash: refreshTokenHash(refreshToken), expiresAt: miniRefreshExpiry(), revokedAt: null },
       create: { userId: user.id, deviceId, refreshTokenHash: refreshTokenHash(refreshToken), expiresAt: miniRefreshExpiry() },
     });
-  });
+    });
+  } catch (error) {
+    if (error instanceof InvalidAuthClaim) return NextResponse.json({ error: "验证码无效或已过期" }, { status: 401 });
+    throw error;
+  }
   return NextResponse.json({ ...tokenResponse(user.id, session.id, refreshToken), account: { linked: true, email: user.email } });
 }

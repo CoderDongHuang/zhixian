@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSessionToken, hashSecret, normalizeEmail, SESSION_COOKIE, SESSION_TTL_DAYS } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
 import { prisma } from "@/lib/prisma";
+import { claimWebAccount, InvalidAuthClaim } from "@/lib/auth-claim";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -15,22 +16,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "验证失败，请稍后再试" }, { status: 429 });
   }
   const otp = await verifyLatestOtp(email, code, now);
-  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  const invitation = inviteCode ? await prisma.invitation.findUnique({ where: { code: inviteCode } }) : null;
-  if (!otp || (!existingUser && (!invitation || invitation.usedAt || (invitation.expiresAt && invitation.expiresAt < now)))) {
+  if (!otp) {
     return NextResponse.json({ error: "验证码或邀请码无效" }, { status: 401 });
   }
 
   const token = createSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-  await prisma.$transaction(async (tx) => {
-    const user = await tx.user.upsert({ where: { email }, update: {}, create: { email } });
-    await tx.userPreference.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, topics: ["AI 行业", "大模型", "GitHub 开源项目"] } });
-    const consumed = await tx.emailOtp.updateMany({ where: { id: otp.id, usedAt: null, lockedAt: null }, data: { usedAt: now } });
-    if (consumed.count !== 1) throw new Error("OTP was already consumed");
-    if (!existingUser && invitation) await tx.invitation.update({ where: { id: invitation.id }, data: { usedAt: now } });
+  try {
+    await prisma.$transaction(async (tx) => {
+    const user = await claimWebAccount(tx, email, inviteCode, otp.id);
     await tx.session.create({ data: { userId: user.id, tokenHash: hashSecret(token), expiresAt } });
-  });
+    });
+  } catch (error) {
+    if (error instanceof InvalidAuthClaim) return NextResponse.json({ error: "验证码或邀请码无效" }, { status: 401 });
+    throw error;
+  }
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" && !e2eMode, path: "/", expires: expiresAt });
