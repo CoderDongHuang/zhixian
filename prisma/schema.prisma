@@ -397,6 +397,9 @@ model LearningAttempt {
   id                String       @id @default(cuid())
   userId            String
   taskId            String
+  requestId         String?
+  requestHash       String?
+  response          Json?
   answers           Json
   score             Int
   maxScore          Int
@@ -409,6 +412,7 @@ model LearningAttempt {
 
   @@index([userId, submittedAt])
   @@index([taskId, submittedAt])
+  @@unique([userId, taskId, requestId])
 }
 
 model LearningReview {

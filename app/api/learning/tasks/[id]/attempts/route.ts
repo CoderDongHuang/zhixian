@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const body = await request.json().catch(() => null);
   try {
-    return NextResponse.json(await submitLearningTask(user.id, id, body));
+    return NextResponse.json(await submitLearningTask(user.id, id, body, request.headers.get("Idempotency-Key")));
   } catch (error) {
     if (error instanceof LearningSubmissionError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error(JSON.stringify({ type: "learning-submission-failed", taskId: id }));
