@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
 import { learningDayKey } from "@/lib/learning-day";
 import { prisma } from "@/lib/prisma";
+import { hashSecret } from "@/lib/auth";
+import { isIsolatedE2e } from "@/lib/e2e-policy";
 
 const ids = {
   users: ["e2e-user-a", "e2e-user-b", "e2e-admin"], events: ["e2e-event-ai", "e2e-event-oss"], feeds: ["e2e-feed-ai", "e2e-feed-oss"],
   digest: "e2e-digest", entities: ["e2e-entity-a", "e2e-entity-b"], source: "e2e-source", docs: ["e2e-doc-ai", "e2e-doc-oss"], path: "e2e-path", task: "e2e-task", trendSlugs: ["e2e-github", "e2e-model", "e2e-paper", "e2e-jobs"],
 };
 
-function allowed(request: Request) {
-  return process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true" && Boolean(process.env.E2E_TEST_SECRET) && request.headers.get("x-e2e-secret") === process.env.E2E_TEST_SECRET;
+async function allowed(request: Request) {
+  const host = new URL(request.url).hostname;
+  return ["127.0.0.1", "localhost", "[::1]"].includes(host) && Boolean(process.env.E2E_TEST_SECRET) && request.headers.get("x-e2e-secret") === process.env.E2E_TEST_SECRET && await isIsolatedE2e(prisma);
 }
 
 async function cleanup() {
   await prisma.emailOtp.deleteMany({ where: { email: { in: ["e2e-a@example.com", "e2e-b@example.com", "e2e-admin@example.com", "e2e-native@example.com"] } } });
-  await prisma.authThrottle.deleteMany();
-  await prisma.securityEvent.deleteMany();
+  const subjects = [...ids.users, "e2e-a@example.com", "e2e-b@example.com", "e2e-admin@example.com", "e2e-native@example.com"];
+  const scopes = ["otp-request-email-minute", "otp-request-email-hour", "otp-request-email-day", "otp-verify-email", "behavior-user-minute"];
+  await prisma.authThrottle.deleteMany({ where: { key: { in: subjects.flatMap((subject) => scopes.map((scope) => hashSecret(`auth-throttle:${scope}:${subject}`))) } } });
+  await prisma.securityEvent.deleteMany({ where: { subjectHash: { in: subjects.map((subject) => hashSecret(`security-subject:${subject}`)) } } });
   await prisma.trendSubject.deleteMany({ where: { slug: { in: ids.trendSlugs } } });
   await prisma.entityMerge.deleteMany({ where: { OR: [{ sourceEntityId: { in: ids.entities } }, { targetEntityId: { in: ids.entities } }] } });
   await prisma.entityRelation.deleteMany({ where: { OR: [{ fromEntityId: { in: ids.entities } }, { toEntityId: { in: ids.entities } }] } });
@@ -36,7 +41,7 @@ async function cleanup() {
 }
 
 export async function POST(request: Request) {
-  if (!allowed(request)) return new NextResponse(null, { status: 404 });
+  if (!await allowed(request)) return new NextResponse(null, { status: 404 });
   const body = await request.json().catch(() => ({}));
   await cleanup();
   if (body.action === "cleanup") return NextResponse.json({ ok: true });
@@ -95,9 +100,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!allowed(request)) return new NextResponse(null, { status: 404 });
+  if (!await allowed(request)) return new NextResponse(null, { status: 404 });
   const body = await request.json().catch(() => ({}));
-  if (body.action === "expire-sessions") { await prisma.session.updateMany({ where: { user: { email: body.email } }, data: { expiresAt: new Date(0) } }); return NextResponse.json({ ok: true }); }
+  if (body.action === "expire-sessions" && ["e2e-a@example.com", "e2e-b@example.com", "e2e-admin@example.com", "e2e-native@example.com"].includes(body.email)) { await prisma.session.updateMany({ where: { user: { email: body.email } }, data: { expiresAt: new Date(0) } }); return NextResponse.json({ ok: true }); }
   if (body.action === "due-learning-reviews") { const review = await prisma.learningReview.findFirst({ where: { userId: ids.users[0], taskId: ids.task }, orderBy: { createdAt: "asc" } }); if (!review) return NextResponse.json({ error: "review not found" }, { status: 404 }); await prisma.learningReview.update({ where: { id: review.id }, data: { dueAt: new Date(0) } }); return NextResponse.json({ ok: true, reviewId: review.id }); }
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
 }

@@ -1,3 +1,4 @@
+import { isIsolatedE2e } from "@/lib/e2e-policy";
 import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { isValidEmail, normalizeEmail } from "@/lib/auth";
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   const code = String(body?.code || "").trim();
   if (!isValidEmail(email) || !code) return NextResponse.json({ error: "valid email and code are required" }, { status: 400 });
   const now = new Date();
-  const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
+  const e2eMode = await isIsolatedE2e(prisma);
   if (!e2eMode && await enforceAuthLimits(otpVerifyRules(request, email, auth.session.deviceId))) {
     return NextResponse.json({ error: "verification failed; try again later" }, { status: 429 });
   }

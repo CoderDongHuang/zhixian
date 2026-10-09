@@ -1,3 +1,4 @@
+import { isIsolatedE2e } from "@/lib/e2e-policy";
 import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { createOtp, hashSecret, isValidEmail, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/auth";
@@ -7,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
+  const e2eMode = await isIsolatedE2e(prisma);
   const body = await parseAuthInput(request, "request");
   if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const email = normalizeEmail(body?.email ?? "");

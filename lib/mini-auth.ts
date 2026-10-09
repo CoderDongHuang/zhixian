@@ -3,7 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { hashSecret } from "@/lib/auth";
 
 import { accessTokenTtlSeconds, issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
-export { exchangeWechatCode, issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
+import { exchangeWechatCode as exchangeRealWechatCode } from "@/lib/mini-security";
+import { isIsolatedE2e } from "@/lib/e2e-policy";
+export { issueAccessToken, verifyAccessToken } from "@/lib/mini-security";
+
+export async function exchangeWechatCode(code: string) {
+  if (code.startsWith("e2e:") && await isIsolatedE2e(prisma)) return { openId: `openid-${code.slice(4)}`, unionId: `union-${code.slice(4)}` };
+  return exchangeRealWechatCode(code);
+}
 
 const REFRESH_TTL_DAYS = 30;
 

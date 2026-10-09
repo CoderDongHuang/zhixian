@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { consumeRateRule, checkLatestOtp } from "@/lib/auth-security-storage";
 import { hashSecret } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -49,37 +49,13 @@ export function otpVerifyRules(request: Request, email: string, deviceId = ""): 
   return rules;
 }
 
-async function consumeRule(rule: LimitRule, now = new Date()) {
-  const key = hashSecret(`auth-throttle:${rule.scope}:${rule.subject}`);
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      return await prisma.$transaction(async (tx) => {
-        const current = await tx.authThrottle.findUnique({ where: { key } });
-        if (current?.blockedUntil && current.blockedUntil > now) return true;
-        const expired = !current || now.getTime() - current.windowStartedAt.getTime() >= rule.windowMs;
-        const count = expired ? 1 : current.count + 1;
-        const blockedUntil = count > rule.limit ? new Date(now.getTime() + rule.blockMs) : null;
-        await tx.authThrottle.upsert({
-          where: { key },
-          create: { key, scope: rule.scope, count, windowStartedAt: now, blockedUntil },
-          update: { scope: rule.scope, count, windowStartedAt: expired ? now : current!.windowStartedAt, blockedUntil },
-        });
-        return Boolean(blockedUntil);
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    } catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2034" || attempt === 2) throw error;
-    }
-  }
-  return true;
-}
-
 export async function enforceAuthLimits(rules: LimitRule[]) {
   return enforceRateLimits(rules, "auth_rate_limited");
 }
 
 export async function enforceRateLimits(rules: LimitRule[], eventKind = "rate_limited") {
   for (const rule of rules) {
-    if (await consumeRule(rule)) {
+    if (await consumeRateRule(prisma, hashSecret, rule)) {
       await recordSecurityEvent(eventKind, rule.subject, { scope: rule.scope });
       return true;
     }
@@ -94,26 +70,7 @@ export async function recordSecurityEvent(kind: string, subject: string | null, 
 }
 
 export async function verifyLatestOtp(email: string, code: string, now = new Date()) {
-  let result: { otp: Awaited<ReturnType<typeof prisma.emailOtp.findFirst>>; locked: boolean } | undefined;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      result = await prisma.$transaction(async (tx) => {
-        const otp = await tx.emailOtp.findFirst({
-          where: { email, usedAt: null, lockedAt: null, expiresAt: { gt: now } },
-          orderBy: { createdAt: "desc" },
-        });
-        if (otp?.codeHash === hashSecret(code)) return { otp, locked: false };
-        if (!otp) return { otp: null, locked: false };
-        const failed = await tx.emailOtp.update({ where: { id: otp.id }, data: { attemptCount: { increment: 1 } } });
-        const locked = failed.attemptCount >= OTP_MAX_ATTEMPTS;
-        if (locked) await tx.emailOtp.update({ where: { id: otp.id }, data: { lockedAt: now, usedAt: now } });
-        return { otp: null, locked };
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-      break;
-    } catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2034" || attempt === 2) throw error;
-    }
-  }
+  const result = await checkLatestOtp(prisma, hashSecret, email, code, OTP_MAX_ATTEMPTS, now);
   if (!result?.otp) await recordSecurityEvent("otp_verification_failed", email, { locked: result?.locked ?? false });
   return result?.otp ?? null;
 }

@@ -32,7 +32,6 @@ export function verifyAccessToken(token: string, now = Date.now()): AccessClaims
 }
 
 export async function exchangeWechatCode(code: string, fetchImpl: typeof fetch = fetch): Promise<{ openId: string; unionId: string | null }> {
-  if (process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true" && code.startsWith("e2e:")) return { openId: `openid-${code.slice(4)}`, unionId: `union-${code.slice(4)}` };
   const appId = process.env.WECHAT_APP_ID;
   const secret = process.env.WECHAT_APP_SECRET;
   if (!appId || !secret) throw new Error("WeChat credentials are not configured");

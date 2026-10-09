@@ -1,3 +1,4 @@
+import { isIsolatedE2e } from "@/lib/e2e-policy";
 import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { isValidEmail, normalizeEmail } from "@/lib/auth";
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   if (!isValidEmail(email) || !/^\d{6}$/.test(code) || !deviceId) return NextResponse.json({ error: "invalid credentials" }, { status: 400 });
 
   const now = new Date();
-  const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
+  const e2eMode = await isIsolatedE2e(prisma);
   if (!e2eMode && await enforceAuthLimits(otpVerifyRules(request, email, deviceId))) return NextResponse.json({ error: "验证失败，请稍后再试" }, { status: 429 });
   const [user, otp] = await Promise.all([
     prisma.user.findUnique({ where: { email }, select: { id: true, email: true } }),

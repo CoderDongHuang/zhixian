@@ -1,3 +1,4 @@
+import { isIsolatedE2e } from "@/lib/e2e-policy";
 import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { createSessionToken, hashSecret, normalizeEmail, SESSION_COOKIE, SESSION_TTL_DAYS } from "@/lib/auth";
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const email = normalizeEmail(body?.email ?? "");
   const code = String(body?.code ?? "").trim();
   const inviteCode = String(body?.inviteCode ?? "").trim();
-  const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
+  const e2eMode = await isIsolatedE2e(prisma);
   const now = new Date();
 
   if (!e2eMode && await enforceAuthLimits(otpVerifyRules(request, email, String(body?.deviceId ?? "")))) {
