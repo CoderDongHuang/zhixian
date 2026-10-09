@@ -12,6 +12,20 @@
     "expo-constants": "18.0.14",
     "expo-file-system": "19.0.24",
     "fast-uri": "3.1.8",
+    "metro": "0.83.8",
+    "metro-babel-transformer": "0.83.8",
+    "metro-cache": "0.83.8",
+    "metro-cache-key": "0.83.8",
+    "metro-config": "0.83.8",
+    "metro-core": "0.83.8",
+    "metro-file-map": "0.83.8",
+    "metro-minify-terser": "0.83.8",
+    "metro-resolver": "0.83.8",
+    "metro-runtime": "0.83.8",
+    "metro-source-map": "0.83.8",
+    "metro-symbolicate": "0.83.8",
+    "metro-transform-plugins": "0.83.8",
+    "metro-transform-worker": "0.83.8",
     "nanoid": "3.3.18",
     "postcss": "8.5.23",
     "sharp": "0.35.5"
@@ -81,7 +95,7 @@
     "mobile:assets": "node scripts/build-mobile-assets.mjs",
     "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
     "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
-    "test:release": "node --test tests/mobile-release-readiness.test.mjs"
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.12.0",
