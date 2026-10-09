@@ -27,16 +27,13 @@ const feedSelect = {
   },
 };
 
-export const getCachedFeed = unstable_cache(
-  async (topic: string | null) => measured("feed.public", () => prisma.feedItem.findMany({
-    where: topic ? { event: { topic } } : undefined,
+// Publication state must be read live: ingestion invalidates analyses outside Next.js.
+export const getCachedFeed = async (topic: string | null) => measured("feed.public", () => prisma.feedItem.findMany({
+    where: { event: { ...(topic ? { topic } : {}), analyses: { some: { status: "AUTO_PUBLISHED" } } } },
     select: feedSelect,
     orderBy: { publishedAt: "desc" },
     take: 50,
-  })),
-  ["public-feed-v031"],
-  { revalidate: 180, tags: ["feed"] },
-);
+  }));
 
 export const getCachedDigests = unstable_cache(
   () => measured("digests.public", () => prisma.digest.findMany({

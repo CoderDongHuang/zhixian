@@ -13,6 +13,7 @@ enum ReviewStatus {
   PENDING_REVIEW
   APPROVED
   REJECTED
+  STALE
 }
 
 enum DocumentLanguage {
@@ -539,6 +540,7 @@ model RawDocument {
   fetchedAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   contentHash       String
+  materialRevision  Int              @default(0)
   cleanedContent    String?
   topic             String?
   processingStatus  ProcessingStatus @default(PENDING)
@@ -582,6 +584,7 @@ model Event {
   topic             String?
   type              String
   importance        Float           @default(0.5)
+  materialRevision  Int             @default(0)
   createdAt         DateTime        @default(now())
   documents         EventDocument[]
   analyses          Analysis[]
@@ -627,6 +630,8 @@ model PipelineRun {
 model Analysis {
   id                String       @id @default(cuid())
   eventId           String
+  inputRevision     Int?
+  inputManifest     Json?
   summary           String
   whyImportant      String?
   impact            String?

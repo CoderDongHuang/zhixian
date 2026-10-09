@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   const auth = await authenticateMiniRequest(request);
   if (!auth) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const items = await prisma.feedItem.findMany({
+    where: { event: { analyses: { some: { status: "AUTO_PUBLISHED" } } } },
     include: { bookmarks: { where: { userId: auth.user.id }, select: { id: true } }, event: { include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 } } } },
     orderBy: { publishedAt: "desc" }, take: 20,
   });

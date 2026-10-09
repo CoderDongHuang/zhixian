@@ -21,7 +21,7 @@ if (existing) {
 
 const limit = type === DigestType.WEEKLY ? 20 : 10;
 const feedItems = await prisma.feedItem.findMany({
-  where: { publishedAt: { gte: periodStart, lte: now } },
+  where: { publishedAt: { gte: periodStart, lte: now }, event: { analyses: { some: { status: "AUTO_PUBLISHED" } } } },
   include: { event: { include: { analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 }, documents: { include: { document: { include: { source: true } } }, take: 1 } } } },
   orderBy: [{ rank: "desc" }, { publishedAt: "desc" }], take: limit,
 });
