@@ -95,7 +95,7 @@
     "mobile:assets": "node scripts/build-mobile-assets.mjs",
     "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
     "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
-    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs"
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.12.0",

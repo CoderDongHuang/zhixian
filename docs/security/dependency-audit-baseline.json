@@ -1,8 +1,6 @@
 {
   "acceptedAdvisories": [
-    1119441,
-    1138808,
-    1138809
+    1119441
   ],
-  "reason": "Expo SDK 54 toolchain advisories that require the coordinated Expo SDK 57 migration documented in dependency-audit-v0.4.md"
+  "reason": "Retains only the historical uuid moderate advisory. Metro 0.83.8 removed image-size; its obsolete high-risk exceptions were removed on 2026-10-10. New high and all critical findings remain blocking."
 }
