@@ -917,6 +917,7 @@ model ResearchShare {
   createdById  String
   tokenHash    String             @unique
   version      Int                @default(1)
+  legacyVersion Int?
   snapshot     Json
   createdAt    DateTime           @default(now())
   expiresAt    DateTime?
@@ -924,6 +925,7 @@ model ResearchShare {
   collection   ResearchCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   createdBy    User               @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  @@unique([collectionId, version])
   @@index([collectionId, createdAt])
   @@index([createdById, createdAt])
 }
