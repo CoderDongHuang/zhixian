@@ -1,24 +1,32 @@
-import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { saveWebPushIntent } from "@/lib/web-push-storage";
 
-export async function POST(request: Request) {
-  const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  const body = await request.json().catch(() => null);
-  if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth) return NextResponse.json({ error: "订阅数据无效" }, { status: 400 });
-  await prisma.deviceSubscription.upsert({
-    where: { endpoint: body.endpoint },
-    update: { userId: user.id, p256dh: body.keys.p256dh, auth: body.keys.auth, userAgent: request.headers.get("user-agent") },
-    create: { userId: user.id, endpoint: body.endpoint, p256dh: body.keys.p256dh, auth: body.keys.auth, userAgent: request.headers.get("user-agent") },
-  });
-  await prisma.userPreference.update({ where: { userId: user.id }, data: { pushEnabled: true } }).catch(() => undefined);
-  return NextResponse.json({ ok: true });
+function endpoint(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 2048) return false;
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
 }
 
-export async function DELETE(request: Request) {
-  const user = await getCurrentUser(); if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  const body = await request.json().catch(() => null);
-  if (body?.endpoint) await prisma.deviceSubscription.deleteMany({ where: { userId: user.id, endpoint: body.endpoint } });
-  if (await prisma.deviceSubscription.count({ where: { userId: user.id } }) === 0) await prisma.userPreference.update({ where: { userId: user.id }, data: { pushEnabled: false } }).catch(() => undefined);
-  return NextResponse.json({ ok: true });
+export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "请先登录" }, { status: 401 });
+  const value = new URL(request.url).searchParams.get("endpoint");
+  if (!endpoint(value)) return Response.json({ error: "订阅数据无效" }, { status: 400 });
+  const registered = await prisma.deviceSubscription.count({ where: { userId: user.id, endpoint: value } }) > 0;
+  return Response.json({ registered }, { headers: { "Cache-Control": "no-store" } });
 }
+
+async function save(request: Request, enabled: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return Response.json({ error: "请先登录" }, { status: 401 });
+  const body = await request.json().catch(() => null);
+  const changedAt = body?.changedAt ?? Date.now();
+  if (!endpoint(body?.endpoint) || !Number.isSafeInteger(changedAt) || changedAt <= 0 || changedAt > Date.now() + 60_000 ||
+    (enabled && (typeof body?.keys?.p256dh !== "string" || !body.keys.p256dh || body.keys.p256dh.length > 512 || typeof body?.keys?.auth !== "string" || !body.keys.auth || body.keys.auth.length > 512)))
+    return Response.json({ error: "订阅数据无效" }, { status: 400 });
+  const saved = await saveWebPushIntent(prisma, user.id, { endpoint: body.endpoint, changedAt, enabled, keys: enabled ? body.keys : undefined, userAgent: request.headers.get("user-agent") });
+  return saved ? Response.json({ ok: true }) : Response.json({ error: "订阅状态已更新，请重新同步" }, { status: 409 });
+}
+
+export async function POST(request: Request) { return save(request, true); }
+export async function DELETE(request: Request) { return save(request, false); }
