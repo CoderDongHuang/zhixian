@@ -1,11 +1,13 @@
+import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createRefreshToken, exchangeWechatCode, miniRefreshExpiry, refreshTokenHash, tokenResponse } from "@/lib/mini-auth";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
+  const body = await parseAuthInput(request, "wechat");
+  if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const code = typeof body?.code === "string" ? body.code.trim() : "";
-  const deviceId = typeof body?.deviceId === "string" ? body.deviceId.trim().slice(0, 128) : "";
+  const deviceId = body.deviceId;
   if (!code || !deviceId) return NextResponse.json({ error: "code and deviceId are required" }, { status: 400 });
   try {
     const identity = await exchangeWechatCode(code);

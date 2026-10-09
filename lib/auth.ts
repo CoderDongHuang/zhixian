@@ -20,8 +20,8 @@ export function createSessionToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
+export function normalizeEmail(value: unknown) {
+  return typeof value === "string" && value.length <= 254 ? value.trim().toLowerCase() : "";
 }
 
 export function isValidEmail(value: string) {

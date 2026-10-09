@@ -15,7 +15,7 @@ export default function LoginPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setLoading(true); setMessage("");
     const url = step === "request" ? "/api/auth/request-code" : "/api/auth/verify-code";
-    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, inviteCode, code }) });
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(step === "request" ? { email, inviteCode } : { email, inviteCode, code }) });
     const result = await response.json(); setLoading(false);
     if (!response.ok) return setMessage(result.error ?? "请求失败，请稍后重试");
     if (step === "request") { setStep("verify"); setMessage("验证码已发送，有效期 10 分钟"); }

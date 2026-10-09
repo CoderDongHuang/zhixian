@@ -1,3 +1,4 @@
+import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { createSessionToken, hashSecret, normalizeEmail, SESSION_COOKIE, SESSION_TTL_DAYS } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
@@ -5,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { claimWebAccount, InvalidAuthClaim } from "@/lib/auth-claim";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
+  const body = await parseAuthInput(request, "webVerify");
+  if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const email = normalizeEmail(body?.email ?? "");
   const code = String(body?.code ?? "").trim();
   const inviteCode = String(body?.inviteCode ?? "").trim();

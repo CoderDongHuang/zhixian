@@ -1,3 +1,4 @@
+import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { isValidEmail, normalizeEmail } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
@@ -6,10 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { consumeOtp, InvalidAuthClaim } from "@/lib/auth-claim";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
+  const body = await parseAuthInput(request, "nativeVerify");
+  if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const email = normalizeEmail(body?.email || "");
   const code = String(body?.code || "").trim();
-  const deviceId = typeof body?.deviceId === "string" ? body.deviceId.trim().slice(0, 128) : "";
+  const deviceId = body.deviceId;
   if (!isValidEmail(email) || !/^\d{6}$/.test(code) || !deviceId) return NextResponse.json({ error: "invalid credentials" }, { status: 400 });
 
   const now = new Date();

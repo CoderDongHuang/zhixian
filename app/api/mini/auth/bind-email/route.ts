@@ -1,3 +1,4 @@
+import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { isValidEmail, normalizeEmail } from "@/lib/auth";
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
@@ -8,7 +9,8 @@ import { consumeOtp, InvalidAuthClaim } from "@/lib/auth-claim";
 export async function POST(request: Request) {
   const auth = await authenticateMiniRequest(request);
   if (!auth) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const body = await request.json().catch(() => null);
+  const body = await parseAuthInput(request, "bind");
+  if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const email = normalizeEmail(body?.email || "");
   const code = String(body?.code || "").trim();
   if (!isValidEmail(email) || !code) return NextResponse.json({ error: "valid email and code are required" }, { status: 400 });

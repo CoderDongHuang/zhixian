@@ -1,3 +1,4 @@
+import { parseAuthInput } from "@/lib/auth-input";
 import { NextResponse } from "next/server";
 import { createOtp, hashSecret, isValidEmail, normalizeEmail, OTP_TTL_MINUTES } from "@/lib/auth";
 import { enforceAuthLimits, getDeviceSubject, otpRequestRules, recordSecurityEvent, waitForMinimumDuration } from "@/lib/auth-security";
@@ -7,7 +8,8 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const startedAt = Date.now();
   const e2eMode = process.env.VERCEL_ENV !== "production" && process.env.E2E_TEST_MODE === "true";
-  const body = await request.json().catch(() => null);
+  const body = await parseAuthInput(request, "request");
+  if (!body) return NextResponse.json({ error: "认证请求格式无效" }, { status: 400 });
   const email = normalizeEmail(body?.email ?? "");
   const inviteCode = String(body?.inviteCode ?? "").trim();
   const deviceId = getDeviceSubject(request, String(body?.deviceId ?? ""));
