@@ -31,6 +31,31 @@ export const readSyncCursor = () => readJson<string>(KEYS.syncCursor, "0");
 export const writeSyncCursor = (value: string) => writeJson(KEYS.syncCursor, value);
 export const readQueue = () => readJson<QueuedMutation[]>(KEYS.queue, []);
 export const writeQueue = (value: QueuedMutation[]) => writeJson(KEYS.queue, value);
+let userStorageTail: Promise<unknown> = Promise.resolve();
+let userStorageGeneration = 0;
+export const getUserStorageGeneration = () => userStorageGeneration;
+function serializeUserStorage<T>(work: () => Promise<T>): Promise<T> {
+  const result = userStorageTail.then(work);
+  userStorageTail = result.catch(() => undefined);
+  return result;
+}
+export function updateQueue(update: (queue: QueuedMutation[]) => QueuedMutation[], generation = userStorageGeneration) {
+  return serializeUserStorage(async () => {
+    if (generation !== userStorageGeneration) return;
+    await writeQueue(update(await readQueue()));
+  });
+}
+export function commitSync(snapshot: SyncSnapshot, cursor: string, generation: number) {
+  return serializeUserStorage(async () => {
+    if (generation !== userStorageGeneration || !/^\d+$/.test(cursor)) return false;
+    if (BigInt(cursor) < BigInt(await readSyncCursor())) return false;
+    await AsyncStorage.multiSet([[KEYS.sync, JSON.stringify(snapshot)], [KEYS.syncCursor, JSON.stringify(cursor)]]);
+    return true;
+  });
+}
 export const readSettings = () => readJson<AppSettings>(KEYS.settings, DEFAULT_SETTINGS);
 export const writeSettings = (value: AppSettings) => writeJson(KEYS.settings, value);
-export const clearUserStorage = () => Promise.all([clearRefreshToken(), AsyncStorage.multiRemove([KEYS.sync, KEYS.syncCursor, KEYS.queue])]);
+export function clearUserStorage() {
+  userStorageGeneration++;
+  return serializeUserStorage(() => Promise.all([clearRefreshToken(), AsyncStorage.multiRemove([KEYS.sync, KEYS.syncCursor, KEYS.queue])]));
+}

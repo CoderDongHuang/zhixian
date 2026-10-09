@@ -1,6 +1,6 @@
 import NetInfo from "@react-native-community/netinfo";
 import { request } from "./api";
-import { getDeviceId, readQueue, readSync, readSyncCursor, writeQueue, writeSync, writeSyncCursor } from "./storage";
+import { commitSync, getDeviceId, getUserStorageGeneration, readQueue, readSync, readSyncCursor, updateQueue } from "./storage";
 import type { MutationResource, QueuedMutation, SyncChange, SyncSnapshot } from "./types";
 import { track } from "./telemetry";
 
@@ -24,7 +24,13 @@ export function applySyncChanges(snapshot: SyncSnapshot, changes: SyncChange[]) 
   return next;
 }
 
-export async function pullSync(): Promise<SyncSnapshot | null> {
+let pulling: Promise<SyncSnapshot | null> | null = null;
+export function pullSync(): Promise<SyncSnapshot | null> {
+  if (!pulling) pulling = performPull().finally(() => { pulling = null; });
+  return pulling;
+}
+async function performPull(): Promise<SyncSnapshot | null> {
+  const generation = getUserStorageGeneration();
   try {
     let snapshot = await readSync();
     let cursor = snapshot ? await readSyncCursor() : "0";
@@ -35,9 +41,8 @@ export async function pullSync(): Promise<SyncSnapshot | null> {
       if (data.snapshot) snapshot = data.snapshot;
       if (!snapshot) return null;
       snapshot = applySyncChanges(snapshot, data.changes || []);
-      await writeSync(snapshot);
       cursor = data.cursor;
-      await writeSyncCursor(cursor);
+      if (!await commitSync(snapshot, cursor, generation)) return readSync();
       if (!data.hasMore) return snapshot;
     }
     throw new Error("Sync pagination limit exceeded");
@@ -46,7 +51,59 @@ export async function pullSync(): Promise<SyncSnapshot | null> {
   }
 }
 
-export async function enqueueMutation(resource: MutationResource, resourceId: string, value: object) { const queue = await readQueue(); const mutation: QueuedMutation = { id: id(), resource, resourceId, value, changedAt: new Date().toISOString(), attempts: 0 }; await writeQueue([...queue.filter((item) => !(item.resource === resource && item.resourceId === resourceId)), mutation]); return flushQueue(); }
-export async function flushQueue() { const startedAt = Date.now(); const state = await NetInfo.fetch(); if (!state.isConnected) return { sent: 0, pending: (await readQueue()).length }; const queue = await readQueue(); if (!queue.length) return { sent: 0, pending: 0 }; const deviceId = await getDeviceId(); let sent = 0; const pending: QueuedMutation[] = []; for (const mutation of queue) { try { const response = await request("/api/mini/sync", { method: "POST", headers: { "Idempotency-Key": mutation.id }, body: JSON.stringify({ deviceId, mutations: [{ resource: mutation.resource, resourceId: mutation.resourceId, value: mutation.value, changedAt: mutation.changedAt }] }) }); if (response.ok) sent += 1; else if (response.status >= 500 || response.status === 429) pending.push({ ...mutation, attempts: mutation.attempts + 1 }); } catch { pending.push({ ...mutation, attempts: mutation.attempts + 1 }); } } await writeQueue(pending.filter((item) => item.attempts < 5)); void track("sync_complete", { sent, pending: pending.length, durationMs: Date.now() - startedAt }); return { sent, pending: pending.length }; }
+let changedAt = 0;
+export async function enqueueMutation(resource: MutationResource, resourceId: string, value: object) {
+  changedAt = Math.max(Date.now(), changedAt + 1);
+  const mutation: QueuedMutation = { id: id(), resource, resourceId, value, changedAt: new Date(changedAt).toISOString(), attempts: 0, status: "pending" };
+  await updateQueue((queue) => [...queue, mutation]);
+  return flushQueue();
+}
+let flushing: Promise<{ sent: number; pending: number; failed: number }> | null = null;
+export function flushQueue() {
+  if (!flushing) flushing = performFlush().finally(() => { flushing = null; });
+  return flushing;
+}
+async function performFlush() {
+  const startedAt = Date.now();
+  const generation = getUserStorageGeneration();
+  const state = await NetInfo.fetch();
+  let sent = 0;
+  if (state.isConnected) {
+    const queue = await readQueue();
+    const deviceId = await getDeviceId();
+    const blocked = new Set<string>();
+    for (const mutation of queue) {
+      if (generation !== getUserStorageGeneration()) break;
+      const key = `${mutation.resource}:${mutation.resourceId}`;
+      if (mutation.status === "failed" || blocked.has(key)) { blocked.add(key); continue; }
+      try {
+        const response = await request("/api/mini/sync", { method: "POST", headers: { "Idempotency-Key": mutation.id }, body: JSON.stringify({ deviceId, mutations: [{ resource: mutation.resource, resourceId: mutation.resourceId, value: mutation.value, changedAt: mutation.changedAt }] }) });
+        if (response.ok) {
+          await updateQueue((latest) => latest.filter((item) => item.id !== mutation.id), generation);
+          sent++;
+          continue;
+        }
+        const auth = response.status === 401;
+        const attempts = auth ? mutation.attempts : mutation.attempts + 1;
+        const retryable = response.status >= 500 || response.status === 429;
+        await updateQueue((latest) => latest.map((item) => item.id === mutation.id ? { ...item, attempts, status: auth ? "auth" : !retryable || attempts >= 5 ? "failed" : "pending", error: auth ? "需要重新登录" : `HTTP ${response.status}` } : item), generation);
+        blocked.add(key);
+        if (auth) break;
+      } catch {
+        const attempts = mutation.attempts + 1;
+        await updateQueue((latest) => latest.map((item) => item.id === mutation.id ? { ...item, attempts, status: attempts >= 5 ? "failed" : "pending", error: "网络请求失败" } : item), generation);
+        blocked.add(key);
+      }
+    }
+  }
+  const remaining = await readQueue();
+  const result = { sent, pending: remaining.length, failed: remaining.filter((item) => item.status === "failed" || item.status === "auth").length };
+  void track("sync_complete", { ...result, durationMs: Date.now() - startedAt });
+  return result;
+}
+export async function retryFailedMutations() {
+  await updateQueue((queue) => queue.map((item) => ({ ...item, attempts: 0, status: "pending", error: undefined })));
+  return flushQueue();
+}
 export const pushMutation = enqueueMutation;
 export function startReconnectSync(onSynced?: () => void) { return NetInfo.addEventListener((state) => { if (state.isConnected) void flushQueue().then(() => pullSync()).then(() => onSynced?.()); }); }

@@ -6,5 +6,5 @@ export type SyncSnapshot = { bookmarks: { feedItemId: string }[]; reads: { feedI
 export type SyncChange = { sequence: string; resource: MutationResource; resourceId: string; value: Record<string, unknown>; changedAt: string };
 export type SessionTokens = { accessToken: string; refreshToken: string; expiresIn: number; account?: { email: string | null; linked: boolean } };
 export type MutationResource = "bookmark" | "read" | "learning_task";
-export type QueuedMutation = { id: string; resource: MutationResource; resourceId: string; value: object; changedAt: string; attempts: number };
+export type QueuedMutation = { id: string; resource: MutationResource; resourceId: string; value: object; changedAt: string; attempts: number; status?: "pending" | "failed" | "auth"; error?: string };
 export type AppSettings = { fontScale: number; speechRate: number; notifications: { digest: boolean; learning: boolean }; cacheLimitMb: number; cacheTtlDays: number; biometricLock: boolean; analytics: boolean };
