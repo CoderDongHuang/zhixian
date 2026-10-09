@@ -1,8 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { frozenDocuments, locateFrozenQuote } from "@/lib/research-evidence";
 import {
   buildResearchOutline,
   buildRuleBasedAnswer,
+  evidenceClaimKind,
   filterEvidenceForMode,
   normalizeEvidence,
   parseResearchModelAnswer,
@@ -89,18 +91,25 @@ export async function collectResearchEvidence(userId: string, collectionId: stri
       const event = eventMap.get(eventId);
       if (!event) continue;
       const analysis = event.analyses[0];
+      const manifest = frozenDocuments(analysis?.inputManifest);
       const citedDocuments = new Set<string>();
       for (const evidence of analysis?.evidence || []) {
-        const sourceUrl = safeSourceUrl(evidence.document.url);
-        if (!sourceUrl) continue;
+        const document = manifest.find((item) => item.id === evidence.documentId);
+        const located = document && locateFrozenQuote(analysis.id, document, evidence.quote);
+        const sourceUrl = document && safeSourceUrl(document.url);
+        if (!located || !document || !sourceUrl) continue;
         citedDocuments.add(evidence.documentId);
-        raw.push({ id: `ev-${++sequence}`, targetType: target.targetType, targetId: target.targetId, targetTitle: target.targetTitle, eventId: event.id, eventTitle: event.title, documentId: evidence.documentId, documentTitle: evidence.document.title, sourceName: evidence.document.source.name, sourceUrl, quote: evidence.quote || analysis.summary, stance: evidence.stance, occurredAt: (evidence.document.publishedAt || evidence.document.fetchedAt || event.createdAt).toISOString(), href: `/events/${encodeURIComponent(event.id)}` });
+        raw.push({ id: `ev-${++sequence}`, targetType: target.targetType, targetId: target.targetId, targetTitle: target.targetTitle, eventId: event.id, eventTitle: event.title, documentId: document.id, documentTitle: document.title, sourceName: document.source, sourceUrl, ...located, stance: evidence.stance, occurredAt: document.publishedAt || analysis.analyzedAt.toISOString(), href: `/events/${encodeURIComponent(event.id)}` });
       }
-      for (const { document } of event.documents) {
+      for (const document of manifest) {
         if (citedDocuments.has(document.id)) continue;
+        const located = locateFrozenQuote(analysis.id, document);
         const sourceUrl = safeSourceUrl(document.url);
-        if (!sourceUrl) continue;
-        raw.push({ id: `ev-${++sequence}`, targetType: target.targetType, targetId: target.targetId, targetTitle: target.targetTitle, eventId: event.id, eventTitle: event.title, documentId: document.id, documentTitle: document.title, sourceName: document.source.name, sourceUrl, quote: analysis?.summary || event.title, stance: "CONTEXT", occurredAt: (document.publishedAt || document.fetchedAt || event.createdAt).toISOString(), href: `/events/${encodeURIComponent(event.id)}` });
+        if (!located || !sourceUrl) continue;
+        raw.push({ id: `ev-${++sequence}`, targetType: target.targetType, targetId: target.targetId, targetTitle: target.targetTitle, eventId: event.id, eventTitle: event.title, documentId: document.id, documentTitle: document.title, sourceName: document.source, sourceUrl, ...located, stance: "CONTEXT", occurredAt: document.publishedAt || analysis.analyzedAt.toISOString(), href: `/events/${encodeURIComponent(event.id)}` });
+      }
+      if (!manifest.length && analysis) {
+        raw.push({ id: `ev-${++sequence}`, targetType: target.targetType, targetId: target.targetId, targetTitle: target.targetTitle, eventId: event.id, eventTitle: event.title, documentId: null, documentTitle: "分析摘要（缺少冻结原文）", sourceName: "知线分析", sourceUrl: `/events/${encodeURIComponent(event.id)}`, quote: analysis.summary.slice(0, 700), sourceKind: "ANALYSIS_SUMMARY", stance: "CONTEXT", occurredAt: analysis.analyzedAt.toISOString(), href: `/events/${encodeURIComponent(event.id)}` });
       }
     }
   }
@@ -117,8 +126,8 @@ async function requestModelAnswer(config: ResearchModelConfig, question: string,
     body: JSON.stringify({
       model: config.model,
       messages: [
-        { role: "system", content: "你是严谨的中文研究代理。只能使用给定证据，不得补充外部事实。每个事实至少引用一个 evidence id；推测必须标记 INFERENCE。只输出 JSON，结构为 {version:'research-agent-answer-v1',title,summary,facts:[{claim,citations,kind}],limitations}。" },
-        { role: "user", content: JSON.stringify({ question, mode, subjects, evidence }) },
+        { role: "system", content: "只能选择给定摘录，不改写或推断。claim 必须与对应 quote 完全相同，citations 仅含该 evidence id，kind 使用给定 claimKind，冲突不能写成 FACT。只输出 JSON，结构为 {version:'research-agent-answer-v1',title,summary,facts:[{claim,citations,kind}],limitations}。" },
+        { role: "user", content: JSON.stringify({ question, mode, subjects, evidence: evidence.map((item) => ({ ...item, sourceSnapshot: undefined, claimKind: evidenceClaimKind(item) })) }) },
       ],
       response_format: { type: "json_object" },
       temperature: 0.1,
@@ -128,8 +137,10 @@ async function requestModelAnswer(config: ResearchModelConfig, question: string,
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result?.error?.message || `Research model returned HTTP ${response.status}`);
-  const answer = parseResearchModelAnswer(result?.choices?.[0]?.message?.content, evidence.map((item) => item.id));
-  return { ...answer, summary: `报告仅依据专题内冻结的 ${evidence.length} 条证据生成；以下事实和推测均可回溯到对应文档或事件。` };
+  const answer = parseResearchModelAnswer(result?.choices?.[0]?.message?.content, evidence);
+  const safe = buildRuleBasedAnswer(question, mode, subjects, evidence);
+  const conflicts = safe.facts.filter((fact) => fact.kind === "CONFLICT");
+  return { ...safe, facts: [...conflicts, ...answer.facts.filter((fact) => fact.kind !== "CONFLICT")].slice(0, 16) };
 }
 
 export async function generateResearchAnswer(question: string, mode: ResearchAgentModeValue, subjects: string[], evidence: ResearchAgentEvidence[], options?: { config?: ResearchModelConfig | null; fetchImpl?: typeof fetch }) : Promise<{ answer: ResearchAgentAnswer; modelVersion: string; fallbackReason: string | null }> {

@@ -45,7 +45,7 @@ test("research agent freezes evidence and produces a cited comparison report", a
   await expect(page.getByText("已完成", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /证据对照/ })).toBeVisible();
   await expect(page.getByText("rules-v1", { exact: true })).toBeVisible();
-  await expect(page.locator(".agent-report > ol > li")).toHaveCount(2);
+  await expect(page.locator(".agent-report > ol > li")).toHaveCount(4);
   await expect(page.locator(".agent-report footer a").first()).toHaveAttribute("href", /^#evidence-ev-/);
   await expect(page.getByText("规则模式完成")).toBeVisible();
 });

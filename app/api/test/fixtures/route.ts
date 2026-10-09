@@ -46,8 +46,16 @@ export async function POST(request: Request) {
   await prisma.rawDocument.createMany({ data: [{ id: ids.docs[0], sourceId: ids.source, url: "https://example.com/e2e-ai", title: "E2E AI", language: "EN", contentHash: "e2e-ai-hash", processingStatus: "PROCESSED" }, { id: ids.docs[1], sourceId: ids.source, url: "https://example.com/e2e-oss", title: "E2E OSS", language: "EN", contentHash: "e2e-oss-hash", processingStatus: "PROCESSED" }] });
   await prisma.event.createMany({ data: [{ id: ids.events[0], title: "E2E AI Event", clusterKey: "e2e-ai", topic: "AI 行业", type: "release", importance: 0.9 }, { id: ids.events[1], title: "E2E OSS Event", clusterKey: "e2e-oss", topic: "GitHub 开源项目", type: "release", importance: 0.6 }] });
   await prisma.eventDocument.createMany({ data: [{ eventId: ids.events[0], documentId: ids.docs[0] }, { eventId: ids.events[1], documentId: ids.docs[1] }] });
+  await prisma.rawDocument.update({ where: { id: ids.docs[0] }, data: { content: "E2E supporting evidence" } });
+  await prisma.rawDocument.update({ where: { id: ids.docs[1] }, data: { content: "E2E conflicting evidence" } });
+  await prisma.eventDocument.create({ data: { eventId: ids.events[0], documentId: ids.docs[1] } });
   await prisma.analysis.createMany({ data: [{ eventId: ids.events[0], summary: "E2E AI 深度分析", whyImportant: "验证推荐和交互", confidence: 0.95, status: "AUTO_PUBLISHED", modelVersion: "e2e", facts: "[]", predictions: "[]" }, { eventId: ids.events[1], summary: "E2E 开源项目分析", whyImportant: "验证排序变化", confidence: 0.9, status: "AUTO_PUBLISHED", modelVersion: "e2e", facts: "[]", predictions: "[]" }] });
   const analysis = await prisma.analysis.findFirstOrThrow({ where: { eventId: ids.events[0] }, select: { id: true } });
+  for (const eventId of ids.events) {
+    const materials = await prisma.eventDocument.findMany({ where: { eventId }, include: { document: { include: { source: true } } } });
+    const manifest = materials.map(({ document }) => ({ id: document.id, revision: document.materialRevision, contentHash: document.contentHash, title: document.title, url: document.url, source: document.source.name, publishedAt: now.toISOString(), content: document.content || "", translation: "" }));
+    await prisma.analysis.updateMany({ where: { eventId }, data: { inputManifest: manifest } });
+  }
   await prisma.evidence.createMany({ data: [{ analysisId: analysis.id, documentId: ids.docs[0], quote: "E2E supporting evidence", stance: "SUPPORT" }, { analysisId: analysis.id, documentId: ids.docs[1], quote: "E2E conflicting evidence", stance: "CONFLICT" }] });
   await prisma.feedItem.createMany({ data: [{ id: ids.feeds[0], eventId: ids.events[0], rank: 0.8 }, { id: ids.feeds[1], eventId: ids.events[1], rank: 0.7 }] });
   await prisma.eventTimeline.create({ data: { eventId: ids.events[0], occurredAt: now, label: "E2E 版本发布", description: "用于验证 7/30/90 天时间线对比", sourceUrl: "https://example.com/e2e-ai" } });
