@@ -5,11 +5,12 @@ import { finishJob } from "./job-policy.mjs";
 const prisma = new PrismaClient();
 const startedAt = new Date();
 const batchSize = Number(process.env.ENTITY_BATCH_SIZE || 20);
-const analyses = await prisma.analysis.findMany({
-  where: process.env.ENTITY_FORCE_RELATIONS === "true" ? { status: "AUTO_PUBLISHED" } : { status: "AUTO_PUBLISHED", event: { OR: [{ mentions: { none: {} } }, { timeline: { none: {} } }] } },
-  include: { event: { include: { timeline: true, documents: { include: { document: true } } } } },
-  orderBy: { analyzedAt: "asc" }, take: batchSize,
+const events = await prisma.event.findMany({
+  where: { isPublic: true, ...(process.env.ENTITY_FORCE_RELATIONS === "true" ? {} : { OR: [{ mentions: { none: {} } }, { timeline: { none: {} } }] }) },
+  include: { analyses: { orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1 }, timeline: true, documents: { include: { document: true } } },
+  orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: batchSize,
 });
+const analyses = events.flatMap((event) => event.analyses.map((analysis) => ({ ...analysis, event })));
 const model = { key: process.env.ANALYSIS_AI_API_KEY, url: process.env.ANALYSIS_AI_API_URL, model: process.env.ANALYSIS_AI_MODEL };
 if (Object.values(model).some((value) => !value)) throw new Error("Entity model configuration is incomplete");
 const system = `你是行业知识图谱抽取器。只根据输入材料输出JSON，不补充材料外事实。格式：{"entities":[{"type":"COMPANY|PERSON|PRODUCT|TECHNOLOGY|OPEN_SOURCE_PROJECT","name":"","description":"","aliases":[""]}],"relations":[{"from":"实体名","to":"实体名","relation":"UPSTREAM|DOWNSTREAM|COMPETES_WITH|COOPERATES_WITH|REFERENCES","confidence":0.8,"evidence":"材料中的依据","sourceUrl":""}],"timeline":[{"occurredAt":"YYYY-MM-DD","label":"","description":"","sourceUrl":""}]}。关系两端必须出现在 entities 中；没有确定关系或日期时输出空数组。`;
@@ -22,6 +23,9 @@ for (const analysis of analyses) {
     const relations = Array.isArray(result.relations) ? result.relations : [];
     const timelines = Array.isArray(result.timeline) ? result.timeline : [];
     await prisma.$transaction(async (tx) => {
+      const [current] = await tx.$queryRaw`SELECT "isPublic", "materialRevision" FROM "Event" WHERE id = ${analysis.eventId} FOR UPDATE`;
+      const latest = await tx.analysis.findFirst({ where: { eventId: analysis.eventId }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }] });
+      if (!current?.isPublic || current.materialRevision !== analysis.inputRevision || latest?.id !== analysis.id) throw new Error("Analysis was withdrawn or superseded during extraction");
       const entityByName = new Map();
       for (const item of entities.slice(0, 20)) {
         if (!Object.values(EntityType).includes(item.type) || !item.name) continue;

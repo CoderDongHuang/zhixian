@@ -29,8 +29,8 @@ export type ResearchSnapshot = {
 export async function resolveResearchTarget(type: ResearchItemTypeValue, id: string) {
   if (type === "EVENT") {
     const event = await prisma.event.findFirst({
-      where: { id, analyses: { some: { status: "AUTO_PUBLISHED" } } },
-      select: { id: true, title: true, analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1, select: { summary: true } } },
+      where: { id, isPublic: true },
+      select: { id: true, title: true, analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1, select: { summary: true } } },
     });
     return event ? { title: event.analyses[0]?.summary || event.title } : null;
   }
@@ -45,9 +45,9 @@ export async function resolveResearchTarget(type: ResearchItemTypeValue, id: str
 async function snapshotItem(type: ResearchItemTypeValue, id: string, title: string, note: string | null): Promise<ResearchSnapshotItem | null> {
   if (type === "EVENT") {
     const event = await prisma.event.findFirst({
-      where: { id, analyses: { some: { status: "AUTO_PUBLISHED" } } },
+      where: { id, isPublic: true },
       include: {
-        analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1, include: { evidence: { include: { document: { include: { source: true } } } } } },
+        analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1, include: { evidence: { include: { document: { include: { source: true } } } } } },
         documents: { include: { document: { include: { source: true } } } },
       },
     });
@@ -58,7 +58,7 @@ async function snapshotItem(type: ResearchItemTypeValue, id: string, title: stri
     return { type, id, title, note, href: researchTargetHref(type, id), summary: analysis.summary, updatedAt: analysis.analyzedAt.toISOString(), sources };
   }
   if (type === "ENTITY") {
-    const entity = await prisma.entity.findUnique({ where: { id }, include: { mentions: { include: { document: { include: { source: true } } } } } });
+    const entity = await prisma.entity.findUnique({ where: { id }, include: { mentions: { where: { event: { isPublic: true } }, include: { document: { include: { source: true } } } } } });
     if (!entity) return null;
     const sources = entity.mentions.flatMap((mention) => mention.document ? [{ title: mention.document.title, url: mention.document.url, source: mention.document.source.name }] : []);
     return { type, id, title, note, href: researchTargetHref(type, id), summary: entity.description, updatedAt: entity.updatedAt.toISOString(), sources: [...new Map(sources.map((source) => [source.url, source])).values()] };

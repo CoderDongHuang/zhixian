@@ -83,13 +83,13 @@ export async function collectResearchEvidence(userId: string, collectionId: stri
           UNION ALL SELECT a."analyzedAt" WHERE a."inputManifest" IS NULL OR a."inputManifest" = 'null'::jsonb OR a."inputManifest" = '[]'::jsonb
         ) dates WHERE stamp <= ${now} ${lower}
       ) dates ON dates.newest IS NOT NULL
-      WHERE ${scope} ORDER BY dates.newest DESC, e.id ASC LIMIT 40
+      WHERE e."isPublic" AND ${scope} ORDER BY dates.newest DESC, e.id ASC LIMIT 40
     `);
     target.eventIds = new Set(selected.map((event) => event.id));
   }
   const eventIds = [...new Set(targets.flatMap((target) => [...target.eventIds]))];
   const events = eventIds.length ? await prisma.event.findMany({
-    where: { id: { in: eventIds }, analyses: { some: { status: "AUTO_PUBLISHED" } } },
+    where: { id: { in: eventIds }, isPublic: true },
     include: {
       analyses: { where: { status: "AUTO_PUBLISHED", analyzedAt: { lte: now } }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1, include: { evidence: true } },
     },

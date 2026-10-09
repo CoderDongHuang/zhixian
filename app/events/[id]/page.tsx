@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { InteractionBar } from "./interaction-bar";
 import { AddToCollection } from "@/app/research/research-controls";
+import { latestAnalysisOrder, publicEventWhere } from "@/lib/publication";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "hnd1";
@@ -14,15 +15,15 @@ export default async function EventDetail({ params }: { params: Promise<{ id: st
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/events/${id}`)}`);
   const event = await prisma.event.findUnique({
-    where: { id },
+    where: { id, ...publicEventWhere },
     include: {
       feedItems: { take: 1 },
       mentions: { include: { entity: true } },
-      outgoingRelations: { include: { toEvent: true }, orderBy: { confidence: "desc" } },
-      incomingRelations: { include: { fromEvent: true }, orderBy: { confidence: "desc" } },
+      outgoingRelations: { where: { toEvent: publicEventWhere }, include: { toEvent: true }, orderBy: { confidence: "desc" } },
+      incomingRelations: { where: { fromEvent: publicEventWhere }, include: { fromEvent: true }, orderBy: { confidence: "desc" } },
       analyses: {
         where: { status: "AUTO_PUBLISHED" },
-        orderBy: { analyzedAt: "desc" },
+        orderBy: latestAnalysisOrder,
         take: 1,
         include: { evidence: { include: { document: { include: { source: true } } } } },
       },

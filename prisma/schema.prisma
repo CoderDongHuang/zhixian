@@ -588,6 +588,7 @@ model Event {
   topic             String?
   type              String
   importance        Float           @default(0.5)
+  isPublic          Boolean         @default(false)
   materialRevision  Int             @default(0)
   createdAt         DateTime        @default(now())
   documents         EventDocument[]
@@ -601,6 +602,7 @@ model Event {
   learningTasks     LearningTask[]
 
   @@index([topic])
+  @@index([isPublic, createdAt])
 }
 
 model EventDocument {

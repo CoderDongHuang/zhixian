@@ -54,7 +54,8 @@ export async function POST(request: Request) {
   for (const eventId of ids.events) {
     const materials = await prisma.eventDocument.findMany({ where: { eventId }, include: { document: { include: { source: true } } } });
     const manifest = materials.map(({ document }) => ({ id: document.id, revision: document.materialRevision, contentHash: document.contentHash, title: document.title, url: document.url, source: document.source.name, publishedAt: now.toISOString(), content: document.content || "", translation: "" }));
-    await prisma.analysis.updateMany({ where: { eventId }, data: { inputManifest: manifest } });
+    const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId } });
+    await prisma.analysis.updateMany({ where: { eventId }, data: { inputManifest: manifest, inputRevision: event.materialRevision } });
   }
   await prisma.evidence.createMany({ data: [{ analysisId: analysis.id, documentId: ids.docs[0], quote: "E2E supporting evidence", stance: "SUPPORT" }, { analysisId: analysis.id, documentId: ids.docs[1], quote: "E2E conflicting evidence", stance: "CONFLICT" }] });
   await prisma.feedItem.createMany({ data: [{ id: ids.feeds[0], eventId: ids.events[0], rank: 0.8 }, { id: ids.feeds[1], eventId: ids.events[1], rank: 0.7 }] });

@@ -18,7 +18,7 @@ test("recent frozen material survives old mentions, old quotes and future dates"
     const documents = index < 55
       ? [material(`${id}-old`, baseline - 40 * 86_400_000)]
       : [...Array.from({ length: 60 }, (_, number) => material(`${id}-old-${number}`, baseline - 40 * 86_400_000)), material(`${id}-recent`, baseline), material(`${id}-future`, baseline + 12 * 3_600_000)];
-    await db.event.create({ data: { id, title: id, clusterKey: id, type: "release", mentions: { create: { entityId: "e2e-entity-a" } }, analyses: { create: { summary: id, confidence: 0.9, status: "AUTO_PUBLISHED", modelVersion: "e2e", analyzedAt: new Date(baseline), inputManifest: documents } } } });
+    await db.event.create({ data: { id, title: id, clusterKey: id, type: "release", mentions: { create: { entityId: "e2e-entity-a" } }, analyses: { create: { summary: id, confidence: 0.9, status: "AUTO_PUBLISHED", modelVersion: "e2e", analyzedAt: new Date(baseline), inputRevision: 0, inputManifest: documents } } } });
   }
   const collectionId = (await (await page.request.post("/api/research/collections", { data: { title: "近期证据召回" } })).json()).collection.id;
   await page.request.post(`/api/research/collections/${collectionId}/items`, { data: { targetType: "ENTITY", targetId: "e2e-entity-a" } });

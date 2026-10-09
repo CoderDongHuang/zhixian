@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sortEntityTimeline } from "@/lib/entity-policy";
 import { getCurrentUser } from "@/lib/auth";
 import { AddToCollection, EntitySubscriptionButton } from "@/app/research/research-controls";
+import { publicEventWhere } from "@/lib/publication";
 
 export const dynamic = "force-dynamic";
 const typeLabels: Record<string, string> = { COMPANY: "公司", PERSON: "人物", PRODUCT: "产品", TECHNOLOGY: "技术", OPEN_SOURCE_PROJECT: "开源项目" };
@@ -16,12 +17,13 @@ export default async function EntityDetail({ params }: { params: Promise<{ id: s
     include: {
       aliases: { orderBy: { alias: "asc" } },
       mentions: {
+        where: { event: publicEventWhere },
         orderBy: { event: { createdAt: "desc" } },
         include: {
           document: { include: { source: true } },
           event: {
             include: {
-              analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: { analyzedAt: "desc" }, take: 1 },
+              analyses: { where: { status: "AUTO_PUBLISHED" }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1 },
               timeline: { orderBy: { occurredAt: "desc" } },
             },
           },
