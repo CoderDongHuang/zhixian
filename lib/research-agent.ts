@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { frozenDocuments, locateFrozenQuote } from "@/lib/research-evidence";
+import { trackedAiFetch } from "@/lib/ai-telemetry.mjs";
 import {
   buildResearchOutline,
   buildRuleBasedAnswer,
@@ -161,7 +162,7 @@ export async function generateResearchAnswer(question: string, mode: ResearchAge
   catch { return { answer: buildRuleBasedAnswer(question, mode, subjects, evidence), modelVersion: "rules-v1", fallbackReason: "模型配置无效" }; }
   if (!config) return { answer: buildRuleBasedAnswer(question, mode, subjects, evidence), modelVersion: "rules-v1", fallbackReason: null };
   try {
-    return { answer: await requestModelAnswer(config, question, mode, subjects, evidence, options?.fetchImpl || fetch), modelVersion: config.model, fallbackReason: null };
+    return { answer: await requestModelAnswer(config, question, mode, subjects, evidence, trackedAiFetch(prisma, "research-agent", config.model, options?.fetchImpl || fetch)), modelVersion: config.model, fallbackReason: null };
   } catch {
     return { answer: buildRuleBasedAnswer(question, mode, subjects, evidence), modelVersion: "rules-v1", fallbackReason: "模型不可用或输出未通过证据校验" };
   }

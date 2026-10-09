@@ -1,28 +1,33 @@
 import { PrismaClient, EntityType } from "@prisma/client";
 import { callModel } from "./model-client.mjs";
 import { finishJob } from "./job-policy.mjs";
+import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 
 const prisma = new PrismaClient();
 const startedAt = new Date();
 const batchSize = Number(process.env.ENTITY_BATCH_SIZE || 20);
+const replay = await replayTarget(prisma, "entity-extract");
 const events = await prisma.event.findMany({
-  where: { isPublic: true, ...(process.env.ENTITY_FORCE_RELATIONS === "true" ? {} : { OR: [{ mentions: { none: {} } }, { timeline: { none: {} } }] }) },
+  where: { isPublic: true, ...(replay ? { id: replay.resourceId } : {}), ...(replay || process.env.ENTITY_FORCE_RELATIONS === "true" ? {} : { OR: [{ mentions: { none: {} } }, { timeline: { none: {} } }] }) },
   include: { analyses: { orderBy: [{ analyzedAt: "desc" }, { id: "desc" }], take: 1 }, timeline: true, documents: { include: { document: true } } },
   orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: batchSize,
 });
 const analyses = events.flatMap((event) => event.analyses.map((analysis) => ({ ...analysis, event })));
+requireReplaySelection(replay, analyses.filter((item) => !replay || item.id === replay.revision));
 const model = { key: process.env.ANALYSIS_AI_API_KEY, url: process.env.ANALYSIS_AI_API_URL, model: process.env.ANALYSIS_AI_MODEL };
 if (Object.values(model).some((value) => !value)) throw new Error("Entity model configuration is incomplete");
 const system = `你是行业知识图谱抽取器。只根据输入材料输出JSON，不补充材料外事实。格式：{"entities":[{"type":"COMPANY|PERSON|PRODUCT|TECHNOLOGY|OPEN_SOURCE_PROJECT","name":"","description":"","aliases":[""]}],"relations":[{"from":"实体名","to":"实体名","relation":"UPSTREAM|DOWNSTREAM|COMPETES_WITH|COOPERATES_WITH|REFERENCES","confidence":0.8,"evidence":"材料中的依据","sourceUrl":""}],"timeline":[{"occurredAt":"YYYY-MM-DD","label":"","description":"","sourceUrl":""}]}。关系两端必须出现在 entities 中；没有确定关系或日期时输出空数组。`;
 let extracted = 0, failed = 0;
 for (const analysis of analyses) {
   try {
+    await runTask(prisma, { name: "entity-extract", resourceId: analysis.eventId, revision: analysis.id }, async () => {
     const material = analysis.event.documents.map(({ document }) => `${document.title}\n发布日期：${document.publishedAt?.toISOString() || "未知"}\n${(document.cleanedContent || document.content || "").slice(0, 7000)}\n来源：${document.url}`).join("\n\n");
     const result = await callModel({ ...model, system, user: `事件：${analysis.event.title}\n分析：${analysis.summary}\n材料：\n${material}`, maxTokens: 900 });
     const entities = Array.isArray(result.entities) ? result.entities : [];
     const relations = Array.isArray(result.relations) ? result.relations : [];
     const timelines = Array.isArray(result.timeline) ? result.timeline : [];
     await prisma.$transaction(async (tx) => {
+      await assertTaskLease(tx);
       const [current] = await tx.$queryRaw`SELECT "isPublic", "materialRevision" FROM "Event" WHERE id = ${analysis.eventId} FOR UPDATE`;
       const latest = await tx.analysis.findFirst({ where: { eventId: analysis.eventId }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }] });
       if (!current?.isPublic || current.materialRevision !== analysis.inputRevision || latest?.id !== analysis.id) throw new Error("Analysis was withdrawn or superseded during extraction");
@@ -61,6 +66,8 @@ for (const analysis of analyses) {
       }
     });
     extracted++; console.log(`${analysis.event.title}: entities=${entities.length} relations=${relations.length} timeline=${timelines.length}`);
+    return true;
+    });
   } catch (error) { failed++; console.error(`${analysis.event.title}: ${error.message}`); }
 }
 await finishJob({ prisma, name: "entity-extract", summary: { total: analyses.length, extracted, failed }, startedAt, output: extracted });

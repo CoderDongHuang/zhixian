@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { configuredEmbeddingDimensions, validEmbeddingVector } from "@/lib/embedding-policy.mjs";
+import { trackedAiFetch } from "@/lib/ai-telemetry.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   let dimensions: number;
   try { dimensions = configuredEmbeddingDimensions(); } catch { return Response.json({ items: textItems }); }
   let embedding: Response;
-  try { embedding = await fetch(process.env.EMBEDDING_API_URL, { method: "POST", headers: { Authorization: `Bearer ${process.env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.EMBEDDING_MODEL || "text-embedding-v3", input: [query], dimensions }), signal: AbortSignal.timeout(5000) }); }
+  try { embedding = await trackedAiFetch(prisma, "search-embedding", process.env.EMBEDDING_MODEL || "text-embedding-v3")(process.env.EMBEDDING_API_URL, { method: "POST", headers: { Authorization: `Bearer ${process.env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.EMBEDDING_MODEL || "text-embedding-v3", input: [query], dimensions }), signal: AbortSignal.timeout(5000) }); }
   catch { return Response.json({ items: textItems }); }
   const payload = await embedding.json().catch(() => null);
   if (!embedding.ok || !payload) return Response.json({ items: textItems });

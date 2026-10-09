@@ -1,10 +1,13 @@
 import { PrismaClient, DocumentLanguage } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { finishJob } from "./job-policy.mjs";
+import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 import { documentContentHash, githubMetrics, normalizeDocumentText } from "./ingest-policy.mjs";
 
 const prisma = new PrismaClient();
 const startedAt = new Date();
+const replay = await replayTarget(prisma, "source-ingest");
+const pollRevision = replay?.revision ?? String(Math.floor(startedAt.getTime() / 900000));
 const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "text" });
 const sources = [
   { name: "OpenAI News", url: "https://openai.com/news/rss.xml", type: "OFFICIAL_BLOG", language: DocumentLanguage.EN, trustScore: 0.95 },
@@ -32,8 +35,10 @@ function itemUrl(item) {
 }
 
 let created = 0, updated = 0, unchanged = 0, snapshots = 0, failed = 0;
-for (const config of sources) {
+requireReplaySelection(replay, sources.filter((item) => !replay || replay.resourceId === item.url));
+for (const config of sources.filter((item) => !replay || replay.resourceId === item.url)) {
   try {
+    await runTask(prisma, { name: "source-ingest", resourceId: config.url, revision: pollRevision }, async () => {
     let source = await prisma.source.findFirst({ where: { url: config.url } });
     const sourceData = { name: config.name, url: config.url, type: config.type, language: config.language, trustScore: config.trustScore };
     source = source ? await prisma.source.update({ where: { id: source.id }, data: sourceData }) : await prisma.source.create({ data: sourceData });
@@ -43,12 +48,14 @@ for (const config of sources) {
     if (source.lastModified) headers["If-Modified-Since"] = source.lastModified;
     const response = await fetch(config.url, { headers, signal: AbortSignal.timeout(15000) });
     if (response.status === 304) {
-      await prisma.source.update({ where: { id: source.id }, data: { lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
+      await prisma.$transaction(async (tx) => { await assertTaskLease(tx); await tx.source.update({ where: { id: source.id }, data: { lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } }); });
       console.log(`${config.name}: not modified`);
-      continue;
+      return true;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.text();
+    const counts = await prisma.$transaction(async (tx) => {
+      await assertTaskLease(tx);
     const items = config.format === "github"
       ? (JSON.parse(payload).items ?? []).map((repo) => ({
           link: repo.html_url,
@@ -58,7 +65,7 @@ for (const config of sources) {
           metrics: githubMetrics(repo),
         }))
       : itemsFrom(payload).slice(0, 30);
-    let sourceCreated = 0, sourceUpdated = 0;
+    const counts = { created: 0, updated: 0, unchanged: 0, snapshots: 0 };
     for (const item of items) {
       const url = itemUrl(item);
       const title = value(item.title).trim();
@@ -67,21 +74,26 @@ for (const config of sources) {
       const publishedAtValue = item.pubDate ?? item.published ?? item.updated;
       const publishedAt = publishedAtValue && !Number.isNaN(Date.parse(publishedAtValue)) ? new Date(publishedAtValue) : null;
       const contentHash = documentContentHash(title, content);
-      const existing = await prisma.rawDocument.findUnique({ where: { url }, select: { id: true, contentHash: true } });
+      const existing = await tx.rawDocument.findUnique({ where: { url }, select: { id: true, contentHash: true } });
       const changed = !existing || existing.contentHash !== contentHash;
       const document = existing
-        ? await prisma.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, language: config.language, publishedAt, fetchedAt: new Date(), contentHash, ...(changed ? { processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: null } : {}) } })
-        : await prisma.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: config.language, publishedAt, contentHash } });
-      if (!existing) { created++; sourceCreated++; }
-      else if (changed) { updated++; sourceUpdated++; }
-      else unchanged++;
+        ? await tx.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, language: config.language, publishedAt, fetchedAt: new Date(), contentHash, ...(changed ? { processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: null } : {}) } })
+        : await tx.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: config.language, publishedAt, contentHash } });
+      if (!existing) counts.created++;
+      else if (changed) counts.updated++;
+      else counts.unchanged++;
       if (config.mutable || changed) {
-        await prisma.sourceSnapshot.create({ data: { sourceId: source.id, documentId: document.id, url, title, content, contentHash, publishedAt, ...(item.metrics ? { metrics: item.metrics } : {}) } });
-        snapshots++;
+        await tx.sourceSnapshot.create({ data: { sourceId: source.id, documentId: document.id, url, title, content, contentHash, publishedAt, ...(item.metrics ? { metrics: item.metrics } : {}) } });
+        counts.snapshots++;
       }
     }
-    await prisma.source.update({ where: { id: source.id }, data: { etag: response.headers.get("etag"), lastModified: response.headers.get("last-modified"), lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
-    console.log(`${config.name}: created=${sourceCreated} updated=${sourceUpdated}`);
+    await tx.source.update({ where: { id: source.id }, data: { etag: response.headers.get("etag"), lastModified: response.headers.get("last-modified"), lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
+    return counts;
+    });
+    created += counts.created; updated += counts.updated; unchanged += counts.unchanged; snapshots += counts.snapshots;
+    console.log(`${config.name}: fetch completed`);
+    return true;
+    });
   } catch (error) {
     failed++;
     console.error(`${config.name}: ${error.message}`);

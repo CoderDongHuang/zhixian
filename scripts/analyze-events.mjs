@@ -4,12 +4,15 @@ import { finishJob } from "./job-policy.mjs";
 import { analysisConfidence, publicationDecision } from "./analysis-policy.mjs";
 import { saveCurrentAnalysis } from "./analysis-storage.mjs";
 import { normalizeEvidenceCandidates } from "../lib/evidence-policy.mjs";
+import { runTask, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 
 const prisma = new PrismaClient();
 const startedAt = new Date();
 const batchSize = Number(process.env.ANALYSIS_BATCH_SIZE ?? 10);
+const replay = await replayTarget(prisma, "content-analyze");
 const events = await prisma.event.findMany({
   where: {
+    ...(replay ? { id: replay.resourceId, materialRevision: Number(replay.revision) } : {}),
     analyses: { none: { status: { not: ReviewStatus.STALE } } },
     documents: { some: {}, every: { document: { processingStatus: "PROCESSED" } } },
   },
@@ -19,6 +22,7 @@ const events = await prisma.event.findMany({
 });
 
 const primary = { key: process.env.AI_API_KEY, url: process.env.AI_API_URL, model: process.env.AI_MODEL };
+requireReplaySelection(replay, events);
 const verifier = { key: process.env.ANALYSIS_AI_API_KEY, url: process.env.ANALYSIS_AI_API_URL, model: process.env.ANALYSIS_AI_MODEL };
 if (Object.values(primary).some((value) => !value) || Object.values(verifier).some((value) => !value)) throw new Error("Analysis model configuration is incomplete");
 
@@ -32,6 +36,7 @@ const verifierSystem = `你是独立事实核验员。核对分析是否完全�
 let published = 0, pending = 0, failed = 0, superseded = 0;
 for (const event of events) {
   try {
+    await runTask(prisma, { name: "content-analyze", resourceId: event.id, revision: event.materialRevision }, async () => {
     const materials = event.documents.map(({ document }, index) => {
       const content = document.cleanedContent || document.content || "";
       return `[材料 ${index + 1}]\n来源：${document.source.name}\n标题：${document.title}\n原文：${content.slice(0, 9000)}\n中文译文：${(document.translatedContent || "").slice(0, 9000)}`;
@@ -56,12 +61,14 @@ for (const event of events) {
       verificationNotes: JSON.stringify({ notes: verification.notes ?? "", unsupportedClaims, factuality, relevance, completeness, publicationPolicy: decision.reason }), confidence, status,
       modelVersion: primary.model, verifierModel: verifier.model, promptVersion: "day5-v1",
     }, candidates, importance);
-    if (!created) { superseded++; continue; }
+    if (!created) { superseded++; return false; }
     if (status === ReviewStatus.AUTO_PUBLISHED) {
       published++;
     }
     else pending++;
     console.log(`${event.title}: confidence=${confidence.toFixed(2)} status=${status}`);
+    return true;
+    });
   } catch (error) {
     failed++;
     console.error(`${event.title}: ${error.message}`);

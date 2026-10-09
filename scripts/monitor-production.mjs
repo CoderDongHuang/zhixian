@@ -6,6 +6,7 @@ const sampleCount = Math.max(3, Number(process.env.MONITOR_SAMPLE_COUNT || 3));
 const checks = [["health", "/api/health"], ["home", "/"], ["entities", "/entities"], ["relations", "/relations?kind=entity"]];
 let unavailableChecks = 0;
 let degradedChecks = 0;
+let operationalFailure = false;
 
 for (const [name, path] of checks) {
   const samples = [];
@@ -28,5 +29,12 @@ for (const [name, path] of checks) {
   console.log(JSON.stringify({ level: result.unavailable ? "error" : result.slow ? "warning" : "info", check: name, thresholdMs, coldStartExcluded: true, ...result, samples }));
 }
 
-console.log(JSON.stringify({ status: unavailableChecks ? "FAILED" : degradedChecks ? "WARNING" : "SUCCEEDED", unavailableChecks, degradedChecks }));
-if (unavailableChecks) process.exitCode = 1;
+try {
+  if (!process.env.MONITOR_TOKEN) throw new Error("MONITOR_TOKEN missing; data health cannot be confirmed");
+  const response = await fetch(`${baseUrl}/api/admin/operations`, { headers: { Authorization: `Bearer ${process.env.MONITOR_TOKEN}` }, signal: AbortSignal.timeout(12000) });
+  const data = await response.json();
+  if (!response.ok || !["SUCCEEDED", "PAUSED"].includes(data.status)) operationalFailure = true;
+  console.log(JSON.stringify({ check: "operations", ...data }));
+} catch (error) { operationalFailure = true; console.error(JSON.stringify({ check: "operations", status: "UNKNOWN", error: error.message })); }
+console.log(JSON.stringify({ status: unavailableChecks || operationalFailure ? "FAILED" : degradedChecks ? "WARNING" : "SUCCEEDED", unavailableChecks, degradedChecks, operationalFailure }));
+if (unavailableChecks || operationalFailure) process.exitCode = 1;

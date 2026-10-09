@@ -22,6 +22,7 @@ jobs:
           MONITOR_URL: https://zhixian.asia
           MONITOR_THRESHOLD_MS: 5000
           MONITOR_SAMPLE_COUNT: 3
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
       - name: Send failure alert
         if: failure()
         run: |

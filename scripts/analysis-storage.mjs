@@ -1,4 +1,5 @@
 import { normalizeEvidenceCandidates } from "../lib/evidence-policy.mjs";
+import { assertTaskLease } from "../lib/pipeline-tasks.mjs";
 
 export function analysisManifest(event) {
   return event.documents.map(({ document }) => ({
@@ -12,6 +13,7 @@ export function analysisManifest(event) {
 
 export async function saveCurrentAnalysis(prisma, event, data, candidates, importance, replaces = null) {
   return prisma.$transaction(async (tx) => {
+    await assertTaskLease(tx);
     const [current] = await tx.$queryRaw`SELECT "materialRevision" FROM "Event" WHERE id = ${event.id} FOR UPDATE`;
     if (!current || current.materialRevision !== event.materialRevision) return null;
     const latest = await tx.analysis.findFirst({ where: { eventId: event.id }, orderBy: [{ analyzedAt: "desc" }, { id: "desc" }] });

@@ -13,6 +13,8 @@ test("latest pending/rejected/withdrawn version hides all live surfaces without 
   await login(page);
   await page.request.post("/api/feed/e2e-feed-ai/bookmark", { data: { bookmarked: true } });
   await page.goto("/events/e2e-event-ai");
+  await page.getByRole("button", { name: "标记已读", exact: true }).click();
+  await expect(page.getByRole("button", { name: "已读", exact: true })).toBeVisible();
   await page.request.post("/api/research/subscriptions/e2e-entity-a", { data: { enabled: true } });
   await db.eventRelation.create({ data: { fromEventId: "e2e-event-ai", toEventId: "e2e-event-oss", relation: "R07_PRIVATE_RELATION", confidence: 0.9 } });
   const current = await db.event.findUniqueOrThrow({ where: { id: "e2e-event-ai" } });
@@ -38,10 +40,23 @@ test("latest pending/rejected/withdrawn version hides all live surfaces without 
     await expect(page.getByText("E2E AI 深度分析")).toHaveCount(0);
   }
   expect(await db.bookmark.count({ where: { feedItemId: "e2e-feed-ai" } })).toBe(1);
+  expect(await db.readHistory.count({ where: { feedItemId: "e2e-feed-ai" } })).toBe(1);
   await db.analysis.update({ where: { id: version.id }, data: { status: "AUTO_PUBLISHED", summary: "R07 current public summary" } });
   expect((await db.event.findUniqueOrThrow({ where: { id: current.id } })).isPublic).toBe(true);
   expect((await (await page.request.get("/api/search?q=R07%20current")).json()).items.some((item: { id: string }) => item.id === current.id)).toBe(true);
   expect((await (await page.request.get("/api/search?q=E2E%20AI%20深度分析")).json()).items.some((item: { summary: string }) => item.summary === "E2E AI 深度分析")).toBe(false);
+  await db.analysis.update({ where: { id: version.id }, data: { status: "PENDING_REVIEW", summary: "R07 human approved current summary" } });
+  await login(page, "e2e-admin@example.com");
+  const approved = await page.request.post("/api/admin/reviews", { data: { id: version.id, status: "APPROVED" } });
+  expect(approved.status()).toBe(200);
+  expect((await approved.json()).status).toBe("AUTO_PUBLISHED");
+  await login(page);
+  for (const path of ["/saved", "/history"]) {
+    await page.goto(path);
+    await expect(page.getByRole("link", { name: "R07 human approved current summary", exact: true })).toBeVisible();
+    await expect(page.getByText("E2E AI 深度分析", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("R07 current public summary", { exact: true })).toHaveCount(0);
+  }
   await db.analysis.update({ where: { id: version.id }, data: { status: "REJECTED" } });
   expect((await db.event.findUniqueOrThrow({ where: { id: current.id } })).isPublic).toBe(false);
   await db.event.update({ where: { id: current.id }, data: { isPublic: true } });

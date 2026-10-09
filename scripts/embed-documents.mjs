@@ -1,31 +1,39 @@
 import { createHash } from "node:crypto";
-import pg from "pg";
+import { PrismaClient } from "@prisma/client";
 import { configuredEmbeddingDimensions, validEmbeddingVector } from "../lib/embedding-policy.mjs";
+import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
+import { trackedAiFetch } from "../lib/ai-telemetry.mjs";
+import { finishJob } from "./job-policy.mjs";
 
-const { Pool } = pg;
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const model = process.env.EMBEDDING_MODEL || "text-embedding-v3";
+const prisma = new PrismaClient();
+const startedAt = new Date();
+const replay = await replayTarget(prisma, "content-embed");
+const model = replay ? JSON.parse(replay.revision)[1] : process.env.EMBEDDING_MODEL || "text-embedding-v3";
 const dimensions = configuredEmbeddingDimensions();
 if (!process.env.EMBEDDING_API_KEY || !process.env.EMBEDDING_API_URL) throw new Error("Embedding configuration is incomplete");
-const client = await pool.connect();
+let created = 0, failed = 0;
 try {
-  const { rows } = await client.query(`select d.id, d.title, d."materialRevision", coalesce(d."cleanedContent", d.content, '') as content from "RawDocument" d where d."processingStatus" = 'PROCESSED' and not exists (select 1 from "Embedding" emb where emb."documentId" = d.id and emb.model = $2) order by d."fetchedAt" asc limit $1`, [Number(process.env.EMBEDDING_BATCH_SIZE || 25), model]);
-  let created = 0;
+  const rows = await prisma.rawDocument.findMany({ where: { processingStatus: "PROCESSED", ...(replay ? { id: replay.resourceId } : {}), embeddings: { none: { model } } }, orderBy: { fetchedAt: "asc" }, take: Number(process.env.EMBEDDING_BATCH_SIZE || 25) });
+  requireReplaySelection(replay, rows.filter((row) => !replay || JSON.stringify([row.materialRevision, model]) === replay.revision));
   for (const row of rows) {
-    const text = `${row.title}\n\n${String(row.content).slice(0, 12000)}`;
-    const contentHash = createHash("sha256").update(`${row.id}:${row.materialRevision}:${model}:${text}`).digest("hex");
-    const response = await fetch(process.env.EMBEDDING_API_URL, { method: "POST", headers: { Authorization: `Bearer ${process.env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, input: [text], dimensions }), signal: AbortSignal.timeout(60000) });
-    const result = await response.json(); if (!response.ok) throw new Error(result?.error?.message || `Embedding HTTP ${response.status}`);
-    const vector = result.data?.[0]?.embedding; if (!validEmbeddingVector(vector, dimensions)) throw new Error(`Embedding response must contain ${dimensions} finite values`);
-    await client.query("BEGIN");
     try {
-      const { rows: current } = await client.query(`select "materialRevision", "processingStatus" from "RawDocument" where id = $1 for update`, [row.id]);
-      if (current[0]?.materialRevision === row.materialRevision && current[0]?.processingStatus === "PROCESSED") {
-        const result = await client.query(`insert into "Embedding" (id, "documentId", "contentHash", model, dimensions, vector, "createdAt") values (gen_random_uuid()::text, $1, $2, $3, $4, $5::vector, now()) on conflict ("contentHash") do nothing`, [row.id, contentHash, model, dimensions, `[${vector.join(",")}]`]);
-        created += result.rowCount;
-      }
-      await client.query("COMMIT");
-    } catch (error) { await client.query("ROLLBACK"); throw error; }
+      await runTask(prisma, { name: "content-embed", resourceId: row.id, revision: JSON.stringify([row.materialRevision, model]) }, async () => {
+        const text = `${row.title}\n\n${String(row.cleanedContent || row.content || "").slice(0, 12000)}`;
+        const contentHash = createHash("sha256").update(`${row.id}:${row.materialRevision}:${model}:${text}`).digest("hex");
+        const response = await trackedAiFetch(prisma, "content-embed", model)(process.env.EMBEDDING_API_URL, { method: "POST", headers: { Authorization: `Bearer ${process.env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ model, input: [text], dimensions }), signal: AbortSignal.timeout(60000) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(`Embedding HTTP ${response.status}`);
+        const vector = result.data?.[0]?.embedding;
+        if (!validEmbeddingVector(vector, dimensions)) throw new Error(`Embedding response must contain ${dimensions} finite values`);
+        return prisma.$transaction(async (tx) => {
+          await assertTaskLease(tx);
+          const [current] = await tx.$queryRaw`SELECT "materialRevision", "processingStatus" FROM "RawDocument" WHERE id = ${row.id} FOR UPDATE`;
+          if (current?.materialRevision !== row.materialRevision || current?.processingStatus !== "PROCESSED") return false;
+          created += await tx.$executeRaw`INSERT INTO "Embedding" (id, "documentId", "contentHash", model, dimensions, vector, "createdAt") VALUES (gen_random_uuid()::text, ${row.id}, ${contentHash}, ${model}, ${dimensions}, ${`[${vector.join(",")}]`}::vector, now()) ON CONFLICT ("contentHash") DO NOTHING`;
+          return true;
+        });
+      });
+    } catch (error) { failed++; console.error(`${row.id}: ${error.message}`); }
   }
-  console.log({ total: rows.length, created });
-} finally { client.release(); await pool.end(); }
+  await finishJob({ prisma, name: "content-embed", summary: { total: rows.length, created, failed }, startedAt, output: created });
+} finally { await prisma.$disconnect(); }

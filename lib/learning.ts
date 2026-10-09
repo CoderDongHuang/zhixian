@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { learningDayKey, learningTimezone } from "@/lib/learning-day";
 import { DAILY_TASK_PROMPT_VERSION, LEARNING_PATH_PROMPT_VERSION, buildRuleLearningOutline, generateDailyTaskWithAi, generateLearningPathWithAi, type AiLearningPath, type DailyCandidate, type LearningContext, type LearningOutlineItem, type ModelConfig } from "@/lib/learning-ai";
 import { chooseAdaptiveTaskType, safeLearningModelConfig, type LearningExercise } from "@/lib/learning-policy";
+import { trackedAiFetch } from "@/lib/ai-telemetry.mjs";
 
 const BEHAVIOR_WEIGHTS: Record<string, number> = { read: 1, listen: 0.8, share: 1.2, bookmark: 1.8, helpful: 1.4, not_helpful: -1 };
 
@@ -50,7 +51,7 @@ async function generatePathData(userId: string) {
   const config = modelConfig();
   if (config) {
     try {
-      const result = await generateLearningPathWithAi(context, config);
+      const result = await generateLearningPathWithAi(context, config, trackedAiFetch(prisma, "learning-path", config.model));
       return { title: result.title, goal: result.goal, level: context.level, topics: result.topics, outline: result.outline as unknown as Prisma.InputJsonValue, modelVersion: config.model, promptVersion: LEARNING_PATH_PROMPT_VERSION, generationReason: result.reason, preferenceFingerprint: fingerprint, stale: false };
     } catch {
       console.warn(JSON.stringify({ type: "learning-ai-fallback", operation: "path", reason: "model_request_failed" }));
@@ -132,7 +133,7 @@ export async function ensureDailyTask(userId: string): Promise<import("@prisma/c
     try {
       const outline = path.outline as unknown as LearningOutlineItem[];
       const aiPath: AiLearningPath = { title: path.title, goal: path.goal, topics: path.topics, outline, reason: path.generationReason || "当前学习路线" };
-      const result = await generateDailyTaskWithAi({ ...context, path: aiPath, candidates, recentEventIds }, config);
+      const result = await generateDailyTaskWithAi({ ...context, path: aiPath, candidates, recentEventIds }, config, trackedAiFetch(prisma, "learning-daily", config.model));
       const selected = candidates.find((candidate) => candidate.eventId === result.eventId) || candidates[0];
       return saveTask({ userId, pathId: path.id, eventId: selected?.eventId || null, entityId: selected?.entityId || null, taskType, prerequisiteTaskId, title: result.title, description: result.description, reason: result.reason, exercise: buildExercise(selected) as unknown as Prisma.InputJsonValue, estimatedMinutes: 15, scheduledFor: new Date(), modelVersion: config.model, promptVersion: DAILY_TASK_PROMPT_VERSION, generationReason: result.reason });
     } catch {

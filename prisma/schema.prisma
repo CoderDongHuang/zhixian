@@ -649,6 +649,59 @@ model PipelineRun {
   @@index([finishedAt])
 }
 
+model PipelineTask {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  name         String
+  resourceId   String
+  revision     String
+  status       String   @default("PENDING")
+  token        String?
+  leaseUntil   DateTime?
+  retryAt      DateTime?
+  attemptCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  attempts     PipelineAttempt[]
+
+  @@index([name, status, retryAt])
+  @@index([status, leaseUntil])
+}
+
+model PipelineAttempt {
+  id         String       @id @default(cuid())
+  taskId     String
+  token      String       @unique
+  status     String
+  errorCode  String?
+  startedAt  DateTime     @default(now())
+  finishedAt DateTime?
+  task       PipelineTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  calls      AiCall[]
+
+  @@index([taskId, startedAt])
+}
+
+model AiCall {
+  id               String           @id @default(cuid())
+  attemptId        String?
+  scope            String
+  model            String
+  provider         String
+  status           String
+  httpStatus       Int?
+  inputTokens      Int?
+  outputTokens     Int?
+  costUsd          Float?
+  pricingVersion   String?
+  durationMs       Int
+  createdAt        DateTime         @default(now())
+  attempt          PipelineAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@index([scope, createdAt])
+  @@index([createdAt])
+}
+
 model Analysis {
   id                String       @id @default(cuid())
   eventId           String
