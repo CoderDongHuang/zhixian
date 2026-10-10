@@ -54,3 +54,21 @@ for (const [name, output, status, expected] of [
     assert.equal(result.status, expected, `${result.stdout}\n${result.stderr}`);
   });
 }
+
+function backportReport({ source = 1240992, severity = "high", name = "braces", nodes = ["node_modules/braces"] } = {}) {
+  const result = report(severity, source);
+  result.vulnerabilities = { [name]: { name, severity, nodes, via: [{ source, severity, name, title: "Backport fixture" }] } };
+  return result;
+}
+
+for (const [name, overrides, expected] of [
+  ["exact verified braces source", {}, 0],
+  ["unreported affected installation", { nodes: [] }, 1],
+  ["unknown affected installation", { nodes: ["node_modules/unknown/braces"] }, 1],
+  ["different braces advisory", { source: 9999998 }, 1],
+  ["critical cannot use a high backport", { severity: "critical" }, 1],
+  ["advisory package mismatch", { name: "fixture" }, 1],
+]) test(`dependency gate backport: ${name}`, () => {
+  const result = run(backportReport(overrides));
+  assert.equal(result.status, expected, `${result.stdout}\n${result.stderr}`);
+});

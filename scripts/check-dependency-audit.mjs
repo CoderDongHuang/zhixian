@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { backports, verifyBackport } from "./security-backports.mjs";
 
 const baselineUrl = new URL("../docs/security/dependency-audit-baseline.json", import.meta.url);
 const baseline = JSON.parse(await readFile(baselineUrl, "utf8"));
@@ -52,7 +53,21 @@ for (const vulnerability of Object.values(findings)) {
 }
 if (severities.some((key) => observedCounts[key] !== counts[key])) invalidReport();
 if (counts.total > 0 && rootAdvisories.size === 0) invalidReport();
-const blocked = [...rootAdvisories.values()].filter((item) => ["high", "critical"].includes(item.severity) && !accepted.has(Number(item.source)));
-console.log(JSON.stringify({ type: "dependency-audit-summary", ...counts, acceptedAdvisories: [...accepted], blocked: blocked.map(({ source, name, severity, title }) => ({ source, name, severity, title })) }));
+const remediated = [];
+for (const backport of backports) {
+  const advisory = rootAdvisories.get(backport.source);
+  if (!advisory || advisory.severity !== "high" || advisory.name !== backport.name) continue;
+  try {
+    const affected = Object.values(findings).filter((finding) => finding.via.some((via) => typeof via === "object" && via.source === backport.source));
+    if (affected.some((finding) => finding.name !== backport.name)) throw new Error("Unexpected advisory package");
+    const evidence = await verifyBackport(backport, affected.flatMap((finding) => finding.nodes || []));
+    remediated.push(evidence);
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+const verified = new Set(remediated.map((item) => item.source));
+const blocked = [...rootAdvisories.values()].filter((item) => ["high", "critical"].includes(item.severity) && !accepted.has(Number(item.source)) && !verified.has(item.source));
+console.log(JSON.stringify({ type: "dependency-audit-summary", ...counts, acceptedAdvisories: [...accepted], remediated, blocked: blocked.map(({ source, name, severity, title }) => ({ source, name, severity, title })) }));
 
 if (Number(counts.critical || 0) > 0 || blocked.length > 0) process.exitCode = 1;
