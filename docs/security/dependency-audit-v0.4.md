@@ -4,7 +4,9 @@
 
 ## 2026-10-10 修复后复核
 
-最新增量：braces `1240992` 与 node-forge `1240912` 已按 [安全回补记录](security-backports-2026-10-10.md) 修复，门禁验证整个安装源码树后单列 `remediated`，不抹掉 npm 原始风险计数。干净安装、发布专项 83/83、Lint 和联网门禁退出 0；最新 GitHub 全链路待核验。下文双公告状态为此前结果。
+最新验收：braces `1240992` 与 node-forge `1240912` 已按 [安全回补记录](security-backports-2026-10-10.md) 修复，门禁验证整个安装源码树后单列 `remediated`，不抹掉 npm 原始风险计数。干净安装、发布专项 83/83、Lint 和联网门禁退出 0；实现提交 `16b30a4a8a4c4b166c40ab688cd3e720464d4764` 的 [GitHub 全链路 38048590366](https://github.com/CoderDongHuang/zhixian/actions/runs/38048590366) 已完成且 success。CI 原始 npm 报告 0 critical / 40 high / 13 moderate（53 个包级传播项），两项 `remediated`、`blocked: []`。本机最终完整浏览器回归 70/70（2.8 分钟），三类类型检查、移动 Jest、Doctor、Android export、18 项 migration、默认 unit、build 和两个非 E2E HTTP 均通过。
+
+以下至“八月历史记录”前为本日回补前的阶段记录，双公告阻塞及旧测试计数不代表最新状态：
 
 Web 安全补丁已落地；Metro 全家族由 0.83.3 同步升级至官方 0.83.8，使用其上游内置图片解析器，锁文件不再包含 image-size。没有强行替换为删除了文件路径 API 的 image-size 2.x，也没有升级 Expo 大版本。下文“没有 SDK 54 兼容补丁”的说法仅代表八月调查，不能沿用。
 
@@ -31,7 +33,7 @@ Web 安全补丁已落地；Metro 全家族由 0.83.3 同步升级至官方 0.83
 
 `package-lock.json` SHA-256：`187358e52717391df4889de52a7ef9bea541d9a7e5676ea9e5e4f52574eede8e`
 
-## 当前结果
+### 八月审计结果
 
 `npm audit --omit=dev`：0 critical、29 high、4 moderate。29 个 high 是 npm 沿 Expo/Metro 依赖图传播后的包级计数，其高危根公告为 `image-size` 的 `1138808` 和 `1138809`；moderate 根公告为 `uuid` 的 `1119441`。npm 提供的自动修复路径是 Expo SDK 57 大版本升级。
 
@@ -43,13 +45,13 @@ Web 安全补丁已落地；Metro 全家族由 0.83.3 同步升级至官方 0.83
 - Prisma Client/CLI 从受 `deepmerge-ts` 公告影响的 6.19.3 固定到安全的 `6.12.0`。
 - `npm run audit:prod` 已进入 quality gate：critical 或新的 high 根公告会使 CI 失败；当前三个上游阻塞公告记录在 `dependency-audit-baseline.json`。
 
-## 剩余风险
+### 八月剩余风险
 
 Expo SDK 54 的 Metro 0.83.3 使用 `image-size` 1.2.1，当前没有 SDK 54 兼容的上游修复。强制 override `image-size` 或只升级 Metro 会越过 Expo 的兼容矩阵，因此未在稳定性分支中采用。
 
 剩余风险主要影响在 CI/开发机上处理恶意 ICNS、JXL 或 HEIF 资源的构建过程，不是 Next.js 线上请求处理路径。当前缓解措施是：仓库和构建资产均受信任、生产定时 Actions 继续暂停、新依赖公告由安全门禁阻断。
 
-## 发布政策
+### 八月发布政策（历史，不作为当前发行许可）
 
 - critical 不接受；新的 high 根公告不接受。
 - Web/后端版本可在上述缓解措施和测试通过后发布。

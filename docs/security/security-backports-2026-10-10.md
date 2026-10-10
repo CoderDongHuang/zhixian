@@ -4,7 +4,7 @@
 
 - [x] braces 3.0.3 / `1240992`：已回补深度限制，真实栈溢出不再复现。
 - [x] node-forge 1.4.0 / `1240912`：上游最小检查已回补，16 项验签/证书回归通过。
-- [ ] 最新 GitHub quality gate 全链路成功：两项回补完成后验证，不以本地通过代替。
+- [x] GitHub quality gate 全链路成功：实现提交 `16b30a4a8a4c4b166c40ab688cd3e720464d4764`，[run 38048590366](https://github.com/CoderDongHuang/zhixian/actions/runs/38048590366)，2026-10-10 11:36 UTC 完成，conclusion 为 success。
 
 没有扩大 `dependency-audit-baseline.json`。npm 原始报告仍按发布版本列出这些公告；项目门禁另外输出 `remediated`，仅在公告编号/包名匹配、锁定版本、所有安装实例与整个 JS/JSON 源树 SHA-256 完全匹配时认定该精确公告已回补。未知副本、未安装补丁、源文件被改、升级到未经审查版本、新公告、critical、审计网络错误都不能因此通过。
 
@@ -27,7 +27,13 @@
 - ASN.1 结构校验后，除现有外层元素数量检查，再严格要求 DigestAlgorithm 只有 OID 与可选单个 NULL；正常省略 NULL 仍可验签。无需改变密钥生成、加密、哈希或 RSA 运算。
 - 修复前实际运行得到 7 个未抛错结果；其中一个初始用例把合法单个 NULL 误当“额外”，已纠正为两个 NULL。其余不合法嵌套和上游 e=3 向量真实复现；修复后全部 16/16 通过，覆盖参数省略/保留、额外 OCTET/SEQUENCE/NULL、外层多元素、SHA-1/256/384/512 正常/篡改、PSS、证书与真实 Expo 自签证书生成/校验/签名 API。
 - 原始完整 JS/JSON 源树 SHA-256：`844b0c1402210f4d6d65ac0faceffa2f96f13c705ff284f1a527efa1a50f2d1d`；修复后：`10034d90cf080bafe171306d73f7a4d5aaad319d95a99a536e3964b46c06fa05`。许可证和来源保留于 [forge-backport-LICENSE.txt](forge-backport-LICENSE.txt)。
-- `npm ci` 干净重装成功，两项补丁自动应用；默认发布专项 83/83、Lint、联网 `audit:prod` 退出 0。原始 npm 包级计数仍为 0 critical / 42 high / 12 moderate（联网动态），门禁已验证两项 `remediated`、`blocked: []`，不是原始 npm 报告“零漏洞”。完整 Linux quality gate 与应用链路仍需独立核验。
+- `npm ci` 干净重装成功，两项补丁自动应用；默认发布专项 83/83、Lint、联网 `audit:prod` 退出 0。原始 npm 包级计数仍为 0 critical / 42 high / 12 moderate（联网动态），门禁已验证两项 `remediated`、`blocked: []`，不是原始 npm 报告“零漏洞”。
+
+## 最终隔离与 CI 验收
+
+实现提交 `16b30a4` 的 Linux quality gate 已实际成功，覆盖干净安装、审计、Lint、Web/测试/移动端类型、移动 Jest 5 suites / 11 tests、Expo Doctor 18/18、Android export、18 项数据库 migration、默认 unit（含发布专项 83/83）、生产构建 35 页、非 E2E 认证/运维 HTTP 与完整浏览器回归。CI 原始 npm 报告为 0 critical / 40 high / 13 moderate，53 个包级传播项；两项精确回补已核验，`blocked: []`。不同环境的动态传播计数差异不改变门禁策略。
+
+同一实现本机最终复测也通过上述链路，Playwright 70/70（2.8 分钟），使用桌面 Chromium 与移动视口；不声称是 Edge 人工操作或手机真机。数据库仅为隔离测试库。未执行生产迁移、收费模型调用或真实通知。
 
 ## 发行边界
 

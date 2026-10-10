@@ -55,4 +55,6 @@ npm run tasks:replay -- <task-id> --execute
 
 本地验收：运维 PostgreSQL/HTTP mock 专项 13/13，关闭 E2E 绕过的认证 HTTP 1/1，数据库不可用时的运维 HTTP 1/1；默认 unit 链、Lint、应用/测试类型检查、移动类型与 Jest 11/11、生产构建 35 页以及完整桌面/移动视口浏览器回归 70/70 均通过。浏览器发布用例通过真实管理员批准接口验证当前摘要，已读通过显式动作写入，不再依赖 GET 副作用。移动 Jest 仍有既存 Sentry 定时器句柄提示。
 
-未执行生产迁移、真实通知、收费模型调用或恢复生产调度。生产备份/恢复、当前配置有效性及正式发行仍待授权验收。当前 R01 安全门禁仍失败，不能宣布发行完成。
+最终实现凭证：提交 `16b30a4a8a4c4b166c40ab688cd3e720464d4764`，锁文件 SHA-256 `1AAE9A8A5D719A029E5DCB0590825B21B7BADC6A51C6F71D861A5F5D762D1CF5`；[GitHub quality gate 38048590366](https://github.com/CoderDongHuang/zhixian/actions/runs/38048590366) 于 2026-10-10 11:36 UTC 完成，conclusion 为 success。干净安装、安全门禁、Lint/类型、移动 Jest/Doctor/Android export、migration、unit、build、HTTP 和 E2E 均成功。本机同一实现最终复测发布专项 83/83、浏览器 70/70（2.8 分钟）。安全回补范围和 npm 原始风险说明见 [安全回补](security/security-backports-2026-10-10.md)。
+
+未执行生产迁移、真实通知、收费模型调用或恢复生产调度。生产备份/恢复、当前配置有效性、原生真机及正式发行仍待验收。R01 代码与 CI 阻塞已解除，不等于发行完成。
