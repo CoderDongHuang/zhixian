@@ -63,6 +63,8 @@ function backportReport({ source = 1240992, severity = "high", name = "braces", 
 
 for (const [name, overrides, expected] of [
   ["exact verified braces source", {}, 0],
+  ["exact verified forge source", { name: "node-forge", source: 1240912, nodes: ["node_modules/node-forge"] }, 0],
+  ["forge unknown affected installation", { name: "node-forge", source: 1240912, nodes: ["node_modules/unknown/node-forge"] }, 1],
   ["unreported affected installation", { nodes: [] }, 1],
   ["unknown affected installation", { nodes: ["node_modules/unknown/braces"] }, 1],
   ["different braces advisory", { source: 9999998 }, 1],

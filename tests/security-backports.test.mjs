@@ -37,23 +37,55 @@ test("braces retains ranges, sets, escaping, quotes and safe-depth behavior", ()
   assert.throws(() => braces.parse("{".repeat(100)), SyntaxError);
 });
 
-test("backport verification rejects unknown nodes, changes, versions and missing installs", async () => {
-  const backport = backports[0];
+for (const backport of backports) test(`${backport.name} verification rejects unknown nodes, changes, versions and missing installs`, async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), "zhixian-backport-"));
   const node = `node_modules/${backport.name}`;
   try {
-    await cp(path.join(projectRoot, node), path.join(temporary, node), { recursive: true });
-    await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages: { [node]: { version: backport.version } } }));
+    const packages = {};
+    for (const item of backports) {
+      const itemNode = `node_modules/${item.name}`;
+      await cp(path.join(projectRoot, itemNode), path.join(temporary, itemNode), { recursive: true });
+      packages[itemNode] = { version: item.version };
+    }
+    await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages }));
     assert.equal(digestTree(await sourceTree(path.join(temporary, node))), backport.patched);
     await verifyBackport(backport, [node], temporary);
     await installBackports(temporary);
-    await assert.rejects(verifyBackport(backport, ["node_modules/unknown/braces"], temporary), /Unverified/);
-    await writeFile(path.join(temporary, node, "lib/parse.js"), "module.exports = () => {};\n");
+    await assert.rejects(verifyBackport(backport, [`node_modules/unknown/${backport.name}`], temporary), /Unverified/);
+    const changedFile = Object.keys(backport.changes)[0];
+    await writeFile(path.join(temporary, node, changedFile), "module.exports = () => {};\n");
     await assert.rejects(verifyBackport(backport, [node], temporary), /missing or modified/);
     await assert.rejects(installBackports(temporary), /unknown source/);
-    await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages: { [node]: { version: "3.0.4" } } }));
+    await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages: { [node]: { version: "0.0.0" } } }));
     await assert.rejects(verifyBackport(backport, [node], temporary), /Unsupported/);
     await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages: {} }));
     await assert.rejects(verifyBackport(backport, [node], temporary), /Missing locked/);
+  } finally { await rm(temporary, { recursive: true, force: true }); }
+});
+
+test("clean source and nested duplicates are patched deterministically and idempotently", async () => {
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "zhixian-clean-backport-"));
+  try {
+    const packages = {};
+    for (const backport of backports) {
+      for (const node of [`node_modules/${backport.name}`, `node_modules/fixture/node_modules/${backport.name}`]) {
+        await cp(path.join(projectRoot, `node_modules/${backport.name}`), path.join(temporary, node), { recursive: true });
+        const files = await sourceTree(path.join(temporary, node));
+        for (const [name, changes] of Object.entries(backport.changes)) {
+          let value = files.get(name).toString("utf8");
+          for (const [before, after] of [...changes].reverse()) value = value.replace(after, before);
+          await writeFile(path.join(temporary, node, name), value);
+        }
+        assert.equal(digestTree(await sourceTree(path.join(temporary, node))), backport.original);
+        packages[node] = { version: backport.version };
+      }
+    }
+    await writeFile(path.join(temporary, "package-lock.json"), JSON.stringify({ packages }));
+    await installBackports(temporary);
+    await installBackports(temporary);
+    for (const backport of backports) {
+      const evidence = await verifyBackport(backport, Object.keys(packages).filter((node) => node.endsWith(`/${backport.name}`)), temporary);
+      assert.equal(evidence.nodes.length, 2);
+    }
   } finally { await rm(temporary, { recursive: true, force: true }); }
 });

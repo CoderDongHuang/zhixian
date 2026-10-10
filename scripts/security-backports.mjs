@@ -19,6 +19,13 @@ export const backports = [{
     "lib/stringify.js": [["  const stringify = (node, parent = {}) => {", "  const stringify = (node, parent = {}, depth = 0) => {\n" + guard.trimEnd()],
       ["stringify(child)", "stringify(child, {}, depth + 1)"]],
   },
+}, {
+  name: "node-forge", version: "1.4.0", source: 1240912,
+  original: "844b0c1402210f4d6d65ac0faceffa2f96f13c705ff284f1a527efa1a50f2d1d",
+  patched: "10034d90cf080bafe171306d73f7a4d5aaad319d95a99a536e3964b46c06fa05",
+  changes: {
+    "lib/rsa.js": [["            obj.value.length !== 2) {", "            obj.value.length !== 2 ||\n            obj.value[0].value.length !==\n              (('parameters' in capture) ? 2 : 1)) {"]],
+  },
 }];
 
 // Hash the complete executable/JSON tree, not a patch marker or just the modified line.
