@@ -697,9 +697,35 @@ model AiCall {
   durationMs       Int
   createdAt        DateTime         @default(now())
   attempt          PipelineAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  budgetReservation AiBudgetReservation?
 
   @@index([scope, createdAt])
   @@index([createdAt])
+}
+
+model AiBudgetDay {
+  day          String @id
+  createdAt    DateTime @default(now())
+  reservations AiBudgetReservation[]
+}
+
+model AiBudgetReservation {
+  id             String @id @default(cuid())
+  day            String
+  scope          String
+  model          String
+  provider       String
+  reservedMicros BigInt
+  chargedMicros  BigInt
+  status         String
+  callId         String? @unique
+  createdAt      DateTime @default(now())
+  settledAt      DateTime?
+  budgetDay      AiBudgetDay @relation(fields: [day], references: [day], onDelete: Restrict)
+  call           AiCall? @relation(fields: [callId], references: [id], onDelete: SetNull)
+
+  @@index([day, status])
+  @@index([scope, createdAt])
 }
 
 model Analysis {

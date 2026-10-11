@@ -52,6 +52,9 @@ jobs:
       AI_API_KEY: ${{ secrets.AI_API_KEY }}
       AI_API_URL: ${{ secrets.AI_API_URL }}
       AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_BUDGET_ENFORCE: "true"
+      AI_BUDGET_JSON: ${{ secrets.AI_BUDGET_JSON }}
+      AI_PRICING_JSON: ${{ secrets.AI_PRICING_JSON }}
       ANALYSIS_AI_API_KEY: ${{ secrets.ANALYSIS_AI_API_KEY }}
       ANALYSIS_AI_API_URL: ${{ secrets.ANALYSIS_AI_API_URL }}
       ANALYSIS_AI_MODEL: ${{ secrets.ANALYSIS_AI_MODEL }}

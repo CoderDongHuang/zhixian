@@ -37,6 +37,8 @@ jobs:
       E2E_TEST_SECRET: e2e-local-secret
       APP_URL: http://127.0.0.1:3100
       CONTENT_PIPELINE_STATE: paused
+      AI_BUDGET_ENFORCE: "false"
+      AI_BUDGET_JSON: ""
       MONITOR_TOKEN: local-monitor-secret-at-least-24
       EMBEDDING_API_KEY: local-mock-only
       EMBEDDING_API_URL: http://127.0.0.1:3158

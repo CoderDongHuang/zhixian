@@ -33,7 +33,7 @@ npm run tasks:replay -- <task-id> --execute
 
 `AiCall` 记录提供商主机、模型、scope、任务 attempt、HTTP 状态、耗时以及提供商实际返回的 token 用量。不保存请求正文、提示词、密钥、完整 URL 或提供商错误正文。HTTP_SUCCEEDED 表示传输成功，不证明业务 JSON/研究证据校验成功；流水线业务失败由 attempt 标记，Web 规则降级不等于模型合格。
 
-`AI_PRICING_JSON` 格式为 `{"provider-host/model":{"version":"price-date","inputPerMillion":2,"outputPerMillion":4}}`，金额单位 USD。只在用量和明确的版本化价格都可用时计算；缺失、非法或溢出记 null，不伪装成零费用。该数值是配置价格下的估算，不替代供应商账单；尚未实现预算硬限额、收费模型实测或账单对账。
+`AI_PRICING_JSON` 格式为 `{"provider-host/model":{"version":"price-date","inputPerMillion":2,"outputPerMillion":4}}`，金额单位 USD。只在用量和明确的版本化价格都可用时计算；缺失、非法或溢出记 null，不伪装成零费用。该数值是配置价格下的估算，不替代供应商账单；预算准入限制已实现，验收状态、配置与限制见 [预算与账单对账](ai-budget-and-reconciliation.md)。收费模型实测、实际账户额度与真实账单对账尚未验收。
 
 ## 发布凭证
 
