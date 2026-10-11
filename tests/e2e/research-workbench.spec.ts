@@ -14,9 +14,12 @@ test("trusted research workbench covers subscriptions, evidence, collections, ti
   const collectionPanel = page.locator(".collection-panel");
   await collectionPanel.getByRole("button", { name: "编辑专题" }).click();
   await collectionPanel.getByLabel("专题名称").fill("E2E 可信研究（已编辑）");
+  const saved = page.waitForResponse((response) => response.url().includes("/api/research/collections/") && response.request().method() === "PATCH");
   await collectionPanel.getByRole("button", { name: "保存", exact: true }).click();
+  expect((await saved).ok()).toBeTruthy();
   await expect(page.getByRole("heading", { name: "E2E 可信研究（已编辑）" })).toBeVisible();
-  const collectionData = await (await page.request.get("/api/research/collections")).json() as { collections: { id: string }[] };
+  const collectionData = await (await page.request.get("/api/research/collections")).json() as { collections: { id: string; title: string }[] };
+  expect(collectionData.collections[0].title).toBe("E2E 可信研究（已编辑）");
   const collectionId = collectionData.collections[0].id;
 
   await page.goto("/entities/e2e-entity-a");
@@ -80,4 +83,26 @@ test("trusted research workbench covers subscriptions, evidence, collections, ti
   await publicPage.reload();
   await expect(publicPage.getByText("404")).toBeVisible();
   await publicContext.close();
+});
+
+test("collection create and edit persist when RSC refresh requests are unavailable", async ({ page }) => {
+  await login(page);
+  await page.goto("/research");
+  await page.route((url) => url.searchParams.has("_rsc"), (route) => route.abort());
+  await page.getByLabel("专题名称").fill("E2E 刷新故障专题");
+  await page.getByRole("button", { name: "新建专题" }).click();
+  const panel = page.locator(".collection-panel");
+  await expect(panel.getByRole("heading", { name: "E2E 刷新故障专题", exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "编辑专题" }).click();
+  await panel.getByLabel("专题名称").fill("E2E 刷新故障专题已保存");
+  await panel.getByLabel("研究说明").fill("重新加载也应保留");
+  await panel.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(panel.getByRole("heading", { name: "E2E 刷新故障专题已保存", exact: true })).toBeVisible();
+  await page.reload();
+  await panel.getByRole("button", { name: "编辑专题" }).click();
+  await expect(panel.getByLabel("专题名称")).toHaveValue("E2E 刷新故障专题已保存");
+  await expect(panel.getByLabel("研究说明")).toHaveValue("重新加载也应保留");
+  const data = await (await page.request.get("/api/research/collections")).json();
+  expect(data.collections).toHaveLength(1);
+  expect(data.collections[0].title).toBe("E2E 刷新故障专题已保存");
 });

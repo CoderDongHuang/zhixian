@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 type CollectionOption = { id: string; title: string };
 
@@ -37,31 +37,48 @@ export function AddToCollection({ targetType, targetId }: { targetType: "EVENT" 
 }
 
 export function CreateCollection() {
-  const router = useRouter();
   const [message, setMessage] = useState("");
-  async function create(formData: FormData) {
-    const response = await fetch("/api/research/collections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: formData.get("title"), description: formData.get("description") }) });
-    if (response.ok) { setMessage("专题已创建"); router.refresh(); }
-    else setMessage((await response.json().catch(() => null))?.error || "创建失败");
+  const [pending, setPending] = useState(false);
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    const formData = new FormData(event.currentTarget);
+    setPending(true); setMessage("");
+    try {
+      const response = await fetch("/api/research/collections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: formData.get("title"), description: formData.get("description") }) });
+      // Read the persisted collection through a document navigation; a streamed RSC
+      // refresh can leave the old tree displayed after a successful mutation.
+      if (response.ok) { window.location.reload(); return; }
+      setMessage((await response.json().catch(() => null))?.error || "创建失败");
+    } catch { setMessage("网络异常，创建结果尚未确认，请刷新核对后再试"); }
+    setPending(false);
   }
-  return <form className="research-create" action={create}><label>专题名称<input name="title" required maxLength={120} /></label><label>研究目标或说明<input name="description" maxLength={1000} /></label><button type="submit">新建专题</button>{message && <small>{message}</small>}</form>;
+  return <form className="research-create" onSubmit={create}><label>专题名称<input name="title" required maxLength={120} disabled={pending} /></label><label>研究目标或说明<input name="description" maxLength={1000} disabled={pending} /></label><button type="submit" disabled={pending}>{pending ? "创建中…" : "新建专题"}</button>{message && <small role="status">{message}</small>}</form>;
 }
 
 export function CollectionSettings({ collectionId, initialTitle, initialDescription }: { collectionId: string; initialTitle: string; initialDescription: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
-  async function save(formData: FormData) {
-    const response = await fetch(`/api/research/collections/${encodeURIComponent(collectionId)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: formData.get("title"), description: formData.get("description") }) });
-    if (response.ok) { setEditing(false); setMessage(""); router.refresh(); }
-    else setMessage((await response.json().catch(() => null))?.error || "保存失败");
+  const [pending, setPending] = useState(false);
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    const formData = new FormData(event.currentTarget);
+    setPending(true); setMessage("");
+    try {
+      const response = await fetch(`/api/research/collections/${encodeURIComponent(collectionId)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: formData.get("title"), description: formData.get("description") }) });
+      if (response.ok) { window.location.reload(); return; }
+      setMessage((await response.json().catch(() => null))?.error || "保存失败");
+    } catch { setMessage("网络异常，保存结果尚未确认，请刷新核对后再试"); }
+    setPending(false);
   }
   async function remove() {
     if (!window.confirm("确认删除这个研究专题及其笔记和分享？")) return;
     const response = await fetch(`/api/research/collections/${encodeURIComponent(collectionId)}`, { method: "DELETE" });
     if (response.ok) router.refresh(); else setMessage("删除失败");
   }
-  return <div className="collection-settings"><button className="secondary" type="button" onClick={() => setEditing(!editing)}>编辑专题</button>{editing && <form action={save}><label>专题名称<input name="title" required maxLength={120} defaultValue={initialTitle} /></label><label>研究说明<textarea name="description" maxLength={1000} defaultValue={initialDescription} /></label><div><button type="submit">保存</button><button className="danger-button" type="button" onClick={remove}>删除专题</button></div></form>}{message && <small>{message}</small>}</div>;
+  return <div className="collection-settings"><button className="secondary" type="button" disabled={pending} onClick={() => setEditing(!editing)}>编辑专题</button>{editing && <form onSubmit={save}><label>专题名称<input name="title" required maxLength={120} defaultValue={initialTitle} disabled={pending} /></label><label>研究说明<textarea name="description" maxLength={1000} defaultValue={initialDescription} disabled={pending} /></label><div><button type="submit" disabled={pending}>{pending ? "保存中…" : "保存"}</button><button className="danger-button" type="button" disabled={pending} onClick={remove}>删除专题</button></div></form>}{message && <small role="status">{message}</small>}</div>;
 }
 
 export function CollectionItemControls({ itemId, initialNote }: { itemId: string; initialNote: string }) {
