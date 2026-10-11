@@ -55,6 +55,10 @@ npm run tasks:replay -- <task-id> --execute
 
 本地验收：运维 PostgreSQL/HTTP mock 专项 13/13，关闭 E2E 绕过的认证 HTTP 1/1，数据库不可用时的运维 HTTP 1/1；默认 unit 链、Lint、应用/测试类型检查、移动类型与 Jest 11/11、生产构建 35 页以及完整桌面/移动视口浏览器回归 70/70 均通过。浏览器发布用例通过真实管理员批准接口验证当前摘要，已读通过显式动作写入，不再依赖 GET 副作用。移动 Jest 仍有既存 Sentry 定时器句柄提示。
 
-最终实现凭证：提交 `16b30a4a8a4c4b166c40ab688cd3e720464d4764`，锁文件 SHA-256 `1AAE9A8A5D719A029E5DCB0590825B21B7BADC6A51C6F71D861A5F5D762D1CF5`；[GitHub quality gate 38048590366](https://github.com/CoderDongHuang/zhixian/actions/runs/38048590366) 于 2026-10-10 11:36 UTC 完成，conclusion 为 success。干净安装、安全门禁、Lint/类型、移动 Jest/Doctor/Android export、migration、unit、build、HTTP 和 E2E 均成功。本机同一实现最终复测发布专项 83/83、浏览器 70/70（2.8 分钟）。安全回补范围和 npm 原始风险说明见 [安全回补](security/security-backports-2026-10-10.md)。
+2026-10-10 安全实现凭证：提交 `16b30a4a8a4c4b166c40ab688cd3e720464d4764`，锁文件 SHA-256 `1AAE9A8A5D719A029E5DCB0590825B21B7BADC6A51C6F71D861A5F5D762D1CF5`；[GitHub quality gate 38048590366](https://github.com/CoderDongHuang/zhixian/actions/runs/38048590366) 于 2026-10-10 11:36 UTC 完成，conclusion 为 success。干净安装、安全门禁、Lint/类型、移动 Jest/Doctor/Android export、migration、unit、build、HTTP 和 E2E 均成功。本机同一实现最终复测发布专项 83/83、浏览器 70/70（2.8 分钟）。安全回补范围和 npm 原始风险说明见 [安全回补](security/security-backports-2026-10-10.md)。
+
+2026-10-11 增量凭证：仅在上述隔离库部署新增 `20261011000100_ai_budget`、`20261011000200_ai_bill_request_ids`，共 20 项 migration；未部署生产。`ec5ad16` 的 [完整 CI 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 成功，预算真实 PostgreSQL/HTTP 10/10、对账真实 PostgreSQL/HTTP/CLI 11/11、skip 0，浏览器 72/72。之前专题保存成功但页面旧标题未刷新已独立修复 `b41cdd2`；配置和账单格式见 [预算与对账](ai-budget-and-reconciliation.md)，专题刷新见 [补修记录](research-collection-refresh-2026-10-11.md)。本机 Edge 增量测试为完整 72/72 加推送错误分支 2/2；属于隔离浏览器桌面/移动视口测试，不是用户登录 profile 的手工验收或手机真机。
 
 未执行生产迁移、真实通知、收费模型调用或恢复生产调度。生产备份/恢复、当前配置有效性、原生真机及正式发行仍待验收。R01 代码与 CI 阻塞已解除，不等于发行完成。
+
+2026-10-11 最后代码批次 `a30d353`：[完整 CI 38121894731](https://github.com/CoderDongHuang/zhixian/actions/runs/38121894731) 成功，浏览器 74/74（2.3 分钟）、预算 10/10、只读对账 11/11、skip 0；安全门禁、Lint/三类类型、移动 Jest/Doctor/export、20 项迁移、unit、build 和两项 HTTP 均通过。专题、对账、推送补修已分批直接推送 main。文档批次的最终 HEAD 检查另见 GitHub commit checks，不能只用此代码批次的历史运行替代。

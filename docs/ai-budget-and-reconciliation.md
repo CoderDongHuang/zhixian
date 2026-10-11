@@ -1,6 +1,6 @@
 # AI 预算与账单对账
 
-更新：2026-10-11。第一批预算代码已推送 `ff0fd8c`，[GitHub run 38119680197](https://github.com/CoderDongHuang/zhixian/actions/runs/38119680197) 中预算真实 PostgreSQL/HTTP 10/10 通过、skip 0；该次完整 CI 因专题编辑页面未更新失败，见 [刷新补修](research-collection-refresh-2026-10-11.md)。本机 Docker 已恢复，预算 10/10、第二批只读账单对账真实 PostgreSQL/CLI 11/11 均通过、skip 0，Lint/类型/Prisma 校验通过。补修后的完整 CI 待验收。未配置真实个人金额、调用收费模型、部署生产迁移或恢复 cron。
+更新：2026-10-11。预算提交 `ff0fd8c` 的首次 CI 因专题编辑页面未更新失败，已由 `b41cdd2` 修复并完成全链路验收，见 [刷新补修](research-collection-refresh-2026-10-11.md)。只读对账提交 `ec5ad16` 的 [GitHub 完整 CI 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 全部通过：预算真实 PostgreSQL/HTTP 10/10、对账真实 PostgreSQL/HTTP/CLI 11/11，均无跳过，浏览器 72/72。本机 Docker 已恢复，同项数据库验收也全部通过，Lint/类型/Prisma 校验及生产构建通过。未配置真实个人金额、调用收费模型、部署生产迁移或恢复 cron。
 
 ## 预算准入
 
@@ -26,8 +26,8 @@ USD 必须是十进制字符串，最多六位小数；数据库以整数微美�
 
 - [x] 策略、金额解析、请求限制、全局事务预留/结算、次数保留、失败保留与运维告警代码；专项已纳入默认 unit 和 CI，CI 无隔离数据库将失败而不是静默跳过。
 - [x] 两个 Prisma 客户端、20 并发 HTTP 请求的真实 PostgreSQL 验收，超额/未知/昨日不确定/结算失败反例；本机及上述 GitHub run 10/10、skip 0。
-- [x] 预算和专题补修的 GitHub 完整 quality gate：[run 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 全部通过；第二批对账工具的完整 CI 另行验收。
-- [x] 供应商账单对账工具及本机真实 PostgreSQL/HTTP/CLI 验收（第二批），11/11、skip 0；GitHub 验收待更新。
+- [x] 预算、专题补修与对账工具的 GitHub 完整 quality gate：[run 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 和 [run 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 全部通过。
+- [x] 供应商账单对账工具及本机/GitHub 真实 PostgreSQL/HTTP/CLI 验收（第二批），11/11、skip 0。
 - [ ] 用户确认实际预算、核实真实费率，配置生产/GitHub/Vercel 并实际验收；供应商账户自身硬额度、真实账单对账和恢复流程仍待完成。
 
 ## 只读账单对账

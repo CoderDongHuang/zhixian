@@ -1,6 +1,6 @@
 # 专题保存刷新补修（2026-10-11）
 
-- 状态：代码修复完成，Lint/测试类型/生产构建通过；本机 Edge 桌面专题完整链路及 RSC 请求故障反例均通过。移动视口和 GitHub 完整 CI 待更新。
+- 状态：修复已提交 `b41cdd2` 并推送 main；本机 Edge 桌面和移动视口的专题完整链路及 RSC 请求故障反例均通过。[GitHub 完整 CI 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 全部通过，包含安全审计、Lint、类型、移动测试/导出、迁移、unit、构建、HTTP 和 72 项浏览器测试。
 - 失败凭证：[run 38119680197](https://github.com/CoderDongHuang/zhixian/actions/runs/38119680197)。预算专项 10/10 通过、skip 0；完整 CI 的专题编辑测试失败，桌面重试仍失败。
 - 下载 trace 确認：PATCH 携带新标题，服务端返回 200；随后的 RSC 刷新请求标为 ERR_ABORTED，界面保持旧标题。不能把它归因为 GitHub 额度或预算实现错误，也不能仅靠增加重试掩盖。
 - 上游参考：[Next.js #99028](https://github.com/vercel/next.js/issues/99028) 报告同类“持久化成功、刷新不提交新界面”的生产构建问题。该报告主要针对 Next 16，本项目为 15.5.27；只作为症状参考，尚未证明内部根因完全一致。
