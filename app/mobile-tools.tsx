@@ -11,6 +11,8 @@ function fromBase64Url(value: string) {
 
 function pushErrorMessage(error: unknown) {
   if (error instanceof DOMException && error.name === "NotAllowedError") return "通知权限被拒绝，请在浏览器设置中允许后重试";
+  if (error instanceof DOMException && ["InvalidAccessError", "InvalidCharacterError"].includes(error.name)) return "推送密钥配置无效，请联系管理员核对";
+  if (error instanceof DOMException && error.name === "AbortError") return "浏览器推送服务拒绝注册，请稍后重试";
   if (error instanceof Error && error.message) return error.message;
   return "推送服务暂时不可用，请稍后重试";
 }

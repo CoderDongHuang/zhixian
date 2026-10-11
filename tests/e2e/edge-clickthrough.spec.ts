@@ -97,7 +97,7 @@ test("filters, administration, and browser push controls are clickable", async (
     await context.grantPermissions(["notifications"], { origin: new URL(page.url()).origin });
     await page.goto("/");
     await page.getByRole("button", { name: "开启推送" }).click();
-    await expect(page.getByRole("status")).toContainText(/推送已开启|连接浏览器推送服务超时|浏览器推送服务拒绝注册/, { timeout: 20_000 });
+    await expect(page.getByRole("status")).toContainText(/推送已开启|推送操作超时，请重试同步|浏览器推送服务拒绝注册/, { timeout: 20_000 });
     const pushEnabled = await page.getByRole("status").getByText("推送已开启", { exact: true }).count();
     if (pushEnabled) {
       await expect(page.getByRole("button", { name: "关闭推送" })).toBeEnabled();

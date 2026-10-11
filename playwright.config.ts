@@ -1,8 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import { createECDH } from "node:crypto";
 
 const port = Number(process.env.E2E_PORT || 3100);
 const browserChannel = process.env.E2E_BROWSER_CHANNEL || undefined;
 const headless = process.env.E2E_HEADFUL === "true" ? false : undefined;
+// A real P-256 public point is required by Edge's PushManager. Never use a
+// production key pair or a short placeholder in the isolated test server.
+const testVapidPublicKey = createECDH("prime256v1").generateKeys().toString("base64url");
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 45_000,
@@ -25,6 +29,6 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { ...process.env, APP_URL: `http://127.0.0.1:${port}`, E2E_TEST_MODE: "true", E2E_TEST_SECRET: process.env.E2E_TEST_SECRET || "e2e-local-secret", VAPID_PUBLIC_KEY: "dGVzdA", ADMIN_EMAILS: "e2e-admin@example.com", WECHAT_APP_ID: process.env.WECHAT_APP_ID || "wx-e2e", WECHAT_APP_SECRET: process.env.WECHAT_APP_SECRET || "e2e-secret", AI_API_KEY: "", AI_API_URL: "", AI_MODEL: "", ANALYSIS_AI_API_KEY: "", ANALYSIS_AI_API_URL: "", ANALYSIS_AI_MODEL: "", LEARNING_AI_API_KEY: "", LEARNING_AI_API_URL: "", LEARNING_AI_MODEL: "" },
+    env: { ...process.env, APP_URL: `http://127.0.0.1:${port}`, E2E_TEST_MODE: "true", E2E_TEST_SECRET: process.env.E2E_TEST_SECRET || "e2e-local-secret", VAPID_PUBLIC_KEY: testVapidPublicKey, ADMIN_EMAILS: "e2e-admin@example.com", WECHAT_APP_ID: process.env.WECHAT_APP_ID || "wx-e2e", WECHAT_APP_SECRET: process.env.WECHAT_APP_SECRET || "e2e-secret", AI_API_KEY: "", AI_API_URL: "", AI_MODEL: "", ANALYSIS_AI_API_KEY: "", ANALYSIS_AI_API_URL: "", ANALYSIS_AI_MODEL: "", LEARNING_AI_API_KEY: "", LEARNING_AI_API_URL: "", LEARNING_AI_MODEL: "" },
   },
 });
