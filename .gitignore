@@ -11,4 +11,5 @@ miniprogram/project.private.config.json
 .vercel
 playwright-report/
 test-results/
+.local-ai-billing/
 mobile-app/dist-*/

@@ -688,6 +688,7 @@ model AiCall {
   scope            String
   model            String
   provider         String
+  providerRequestId String?
   status           String
   httpStatus       Int?
   inputTokens      Int?
@@ -701,6 +702,7 @@ model AiCall {
 
   @@index([scope, createdAt])
   @@index([createdAt])
+  @@index([provider, providerRequestId])
 }
 
 model AiBudgetDay {
