@@ -21,6 +21,8 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 
 本地地址为 `http://127.0.0.1:3000`。
 
+运行 `npm run configuration:check` 安全检查有效本地配置；添加 `-- --database` 才进行只读连接、迁移台账和向量列核验。生产约束使用 `-- --production`，它不会自动读取远程平台配置，也不证明可以发行。命令与当前缺口见 [配置预检记录](docs/release-preflight-2026-10-12.md)。
+
 ## 核心任务
 
 - `npm run sources:ingest`：采集公开来源

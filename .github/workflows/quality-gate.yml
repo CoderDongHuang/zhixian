@@ -68,6 +68,7 @@ jobs:
       - run: npm run db:generate
       - run: npm run test:db:prepare
       - run: npm run test:unit
+      - run: npm run test:configuration
       - run: npm run build
       - run: npm run test:auth-http
       - run: npm run test:operations:http

@@ -21,7 +21,7 @@
 ### B. 状态一致性与个人 Web/PWA 灰度
 
 - [ ] 原生队列代码修复已完成（P1-R09），补手机真机断网、进程重启和系统后台验收；类型检查与 Jest 11/11 通过（2026-10-09）。
-- [ ] 分别验证本地、Vercel、GitHub 与 EAS 配置，不以变量存在代替有效性。
+- [ ] 分别验证本地、Vercel、GitHub 与 EAS 配置，不以变量存在代替有效性。本地脱敏预检及显式只读连接工具已实现，现有本地配置仍被阻塞；平台对齐与真实业务验收待完成，见 [配置预检](docs/release-preflight-2026-10-12.md)。
 - [ ] 确认真正有效的数据库 migration 连接、生产备份点、恢复演练和 schema drift；先预演后部署。
 - [ ] 验收真实模型、向量维度/检索、邮件到达、浏览器推送与微信平台配置；本地规则/夹具成功不能替代这些检查。
 
@@ -64,7 +64,8 @@
 
 ## 4. 完成项归档
 
-- [x] 2026-10-12 预算最终字节限制与浏览器模型隔离补漏：本机真实 PostgreSQL/HTTP 预算 10/10、Edge 研究专项 4/4、Lint/测试类型通过；GitHub 完整 CI 在推送后核验，见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。
+- [x] 2026-10-12 预算最终字节限制与浏览器模型隔离补漏 `a9bdbfa`：本机真实 PostgreSQL/HTTP 预算 10/10、Edge 研究专项 4/4、Lint/测试类型通过；[GitHub 完整 CI 38209019085](https://github.com/CoderDongHuang/zhixian/actions/runs/38209019085) 全阶段成功，见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。
+- [x] 2026-10-12 配置预检工具：脱敏格式/冲突检查、Next 环境文件优先级与显式只读连接、迁移 checksum/向量列核验，本机 13/13 无跳过。实际本地配置缺口和平台/生产验收仍保留在 B，不把工具完成误记为配置完成；见 [预检记录](docs/release-preflight-2026-10-12.md)。
 
 - [x] 2026-10-11 共享 AI 预算与只读对账：预算 `ff0fd8c`、对账 `ec5ad16`；本机和 [GitHub 完整 CI 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 预算 10/10、对账 11/11、无跳过，CI 浏览器 72/72。真实供应商与生产验收保留在 C 中。
 - [x] 2026-10-11 专题保存刷新补修 `b41cdd2`：实际 PATCH 持久化及阻断 RSC 的创建/编辑回归在桌面/移动视口通过，[完整 CI 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 成功；见 [专项记录](docs/research-collection-refresh-2026-10-11.md)。
