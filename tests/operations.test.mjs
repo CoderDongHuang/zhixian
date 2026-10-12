@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { claimTask, runTask, finishTask, assertTaskLease, taskKey, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 import { evaluateOperations, monitorAuthorized, operationalMetrics } from "../lib/operations.mjs";
 import { usageCost, trackedAiFetch } from "../lib/ai-telemetry.mjs";
+import { isPageAvailable } from "../scripts/monitor-policy.mjs";
 
 const now = new Date("2026-10-09T00:00:00Z");
 const fresh = () => ({ sources: [{ id: "source", lastFetchedAt: now }], latestPublishedAt: now, backlog: { pending: 0, failed: 0, oldestAt: null }, attempts: 5, failedAttempts: 0, failedTasks: 0, expiredTasks: 0, waitingTasks: 0, notificationFailures: 0, unknownCostCalls: 0 });
@@ -46,10 +47,11 @@ test("AI cost only uses returned usage and versioned explicit pricing", () => {
 });
 
 test("monitor CLI really exits unsuccessfully on stale or unconfirmed operations", async () => {
-  let status = "SUCCEEDED", seenAuth;
+  let status = "SUCCEEDED", seenAuth, brokenHome = false;
   const server = createServer((req, res) => {
     res.setHeader("Content-Type", "application/json");
     if (req.url === "/api/admin/operations") { seenAuth = req.headers.authorization; res.end(JSON.stringify({ status, reasons: status === "WARNING" ? ["SOURCE_STALE"] : [] })); }
+    else if (req.url === "/" && brokenHome) { res.setHeader("Content-Type", "text/html"); res.end('<html><body><h2>Application error: a server<!-- -->-side exception has occurred while loading example.test</h2><p>Digest: 1748612648</p></body></html>'); }
     else res.end(JSON.stringify({ database: "ok" }));
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -63,7 +65,25 @@ test("monitor CLI really exits unsuccessfully on stale or unconfirmed operations
       assert.equal(result.output.includes(env.MONITOR_TOKEN), false);
     }
     assert.equal((await run("monitor-production", [], { ...env, MONITOR_TOKEN: "" })).code, 1);
+    status = "PAUSED";
+    brokenHome = true;
+    const broken = await run("monitor-production", [], env);
+    assert.equal(broken.code, 1, broken.output);
+    const lines = broken.output.trim().split("\n").map((line) => JSON.parse(line));
+    const home = lines.find((line) => line.check === "home");
+    assert.equal(home.unavailable, true);
+    assert.ok(home.samples.every((sample) => sample.status === 200 && !sample.available));
+    assert.equal(lines.at(-1).unavailableChecks, 1);
   } finally { await new Promise((resolve) => server.close(resolve)); }
+});
+
+test("HTTP 200 streamed framework errors are unavailable without flagging ordinary articles", () => {
+  assert.equal(isPageAvailable(true, '<html id="__next_error__"><body>failed</body></html>'), false);
+  assert.equal(isPageAvailable(true, '<h2>Application<!-- --> error: a client-side exception has occurred</h2>'), false);
+  assert.equal(isPageAvailable(true, '<main><h1>行业观察</h1><p>如何分析 Application error 日志</p></main>'), true);
+  assert.equal(isPageAvailable(true, '<main>行业观察</main><script>"Application error: a server-side exception has occurred"</script>'), true);
+  assert.equal(isPageAvailable(false, '<main>行业观察</main>'), false);
+  assert.equal(isPageAvailable(true, '   '), false);
 });
 
 const database = process.env.DATABASE_URL && new URL(process.env.DATABASE_URL);

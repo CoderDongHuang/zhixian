@@ -1,4 +1,4 @@
-import { evaluateMonitorSamples } from "./monitor-policy.mjs";
+import { evaluateMonitorSamples, isPageAvailable } from "./monitor-policy.mjs";
 
 const baseUrl = process.env.MONITOR_URL || "https://zhixian.asia";
 const thresholdMs = Number(process.env.MONITOR_THRESHOLD_MS || 5000);
@@ -16,7 +16,7 @@ for (const [name, path] of checks) {
       const response = await fetch(`${baseUrl}${path}`, { headers: { "User-Agent": "zhixian-production-monitor/0.4.0" }, signal: AbortSignal.timeout(12000) });
       const body = await response.text();
       const elapsedMs = Math.round(performance.now() - started);
-      let available = response.ok && body.length > 0;
+      let available = isPageAvailable(response.ok, body);
       if (name === "health") { try { available &&= JSON.parse(body).database === "ok"; } catch { available = false; } }
       samples.push({ sample, available, status: response.status, elapsedMs });
     } catch (error) {

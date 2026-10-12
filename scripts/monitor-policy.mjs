@@ -1,3 +1,15 @@
+export function isPageAvailable(responseOk, body) {
+  if (!responseOk || !body.trim()) return false;
+  // Next.js can stream an error page after sending HTTP 200. Its text may
+  // contain comments/tags between words, so inspect visible text as well.
+  const visible = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[^]*?-->/g, "").replace(/<[^>]*>/g, " ")
+    .replace(/&(?:nbsp|#160);/gi, " ").replace(/\s+/g, " ");
+  return !/application error\s*:\s*a (?:server|client)[- ]side exception has occurred/i.test(visible)
+    && !/id\s*=\s*["']__next_error__["']/i.test(body);
+}
+
 export function percentile95(values) {
   if (!values.length) return null;
   const sorted = [...values].sort((left, right) => left - right);
