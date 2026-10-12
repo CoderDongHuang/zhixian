@@ -48,11 +48,12 @@ App({
     this.authPromise = null;
     wx.removeStorageSync("refreshToken");
     wx.removeStorageSync("miniAccount");
+    wx.removeStorageSync("learningSnapshot");
     wx.setStorageSync("syncCursor", "0");
   },
   request(options, retried) {
     return this.authenticate().then(() => new Promise((resolve, reject) => wx.request({
-      ...options, url: `${this.globalData.apiBase}${options.url}`,
+      timeout: 15000, ...options, url: `${this.globalData.apiBase}${options.url}`,
       header: { ...(options.header || {}), Authorization: `Bearer ${this.globalData.accessToken}` },
       success: (response) => {
         if (response.statusCode === 401 && !retried) {
@@ -70,7 +71,8 @@ App({
   },
   pullSync() {
     const cursor = wx.getStorageSync("syncCursor") || "0";
-    return this.request({ url: `/api/mini/sync?cursor=${cursor}` }).then(({ data }) => {
+    return this.request({ url: `/api/mini/sync?cursor=${cursor}` }).then(({ statusCode, data }) => {
+      if (statusCode !== 200 || !data || typeof data !== "object") throw new Error("同步失败，请稍后重试");
       if (data.cursor) wx.setStorageSync("syncCursor", data.cursor);
       if (data.snapshot) wx.setStorageSync("learningSnapshot", data.snapshot);
       return data;

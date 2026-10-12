@@ -1,1 +1,4 @@
-.shell{padding:28rpx}.title{font-size:34rpx;font-weight:600;margin:24rpx 0 16rpx}.row,.identity{display:flex;gap:12rpx;align-items:center}.identity{justify-content:space-between;background:#fff;border:1px solid #d8dfdc;border-radius:12rpx;padding:12rpx 24rpx}.identity .title{margin-bottom:0}input{border:1px solid #d8dfdc;padding:18rpx;margin-bottom:16rpx;background:#fff}.row input{flex:1}.status,.muted{color:#66736e;margin:18rpx 0}.linked{color:#176b4d;background:#eaf7f1;padding:16rpx 20rpx;margin:20rpx 0}button{margin:16rpx 0}
+.identity{display:flex;align-items:center;justify-content:space-between}
+input{box-sizing:border-box;width:100%;height:96rpx;border:1rpx solid #dce2de;border-radius:16rpx;padding:0 24rpx;margin-top:24rpx;background:#fff;color:#202824}
+.linked{color:#21634b;background:#edf4f0;padding:20rpx 24rpx;margin:20rpx 0;border-radius:16rpx;word-break:break-all}
+.status{color:#202824;background:#edf4f0;border:1rpx solid #dce2de;border-radius:20rpx;padding:24rpx;margin:24rpx 0;line-height:1.7}

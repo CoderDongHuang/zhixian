@@ -1,1 +1,23 @@
-page{background:#f7f8fa;color:#17211d;font:30rpx/1.65 sans-serif}.shell{padding:32rpx}.brand{font-size:44rpx;font-weight:700;margin:16rpx 0}.muted{color:#667085}.card{background:#fff;border:1rpx solid #dfe3e8;border-radius:12rpx;padding:28rpx;margin:20rpx 0}.tag{color:#176b4d;font-size:24rpx}.title{font-size:34rpx;font-weight:700;margin:12rpx 0}.button{background:#176b4d;color:#fff;border-radius:10rpx;margin-top:24rpx}.source{padding:16rpx 0;border-bottom:1rpx solid #eee}.account-bar{display:flex;align-items:center;justify-content:space-between;gap:20rpx;background:#fff;border:1rpx solid #dfe3e8;border-radius:12rpx;padding:20rpx 24rpx;margin:24rpx 0}.account-state{font-weight:600}.account-bar navigator{color:#176b4d;font-size:26rpx}.error{color:#a33a2b;background:#fff0ed;border-left:6rpx solid #c44f3b;padding:18rpx 22rpx;margin:20rpx 0}.empty{color:#667085;text-align:center;padding:64rpx 0}
+page{background:#f5f6f7;color:#202824;font:30rpx/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.shell{padding:36rpx 32rpx 64rpx;padding-bottom:calc(64rpx + env(safe-area-inset-bottom))}
+.brand{font-size:46rpx;line-height:1.45;font-weight:700;margin:16rpx 0 20rpx;word-break:break-all}
+.eyebrow,.tag{color:#21634b;font-size:24rpx;font-weight:600}
+.muted{color:#606c66;word-break:break-all}
+.card{background:#fff;border:1rpx solid #dce2de;border-radius:24rpx;padding:32rpx;margin:24rpx 0}
+.title{font-size:36rpx;line-height:1.55;font-weight:600;margin:12rpx 0 20rpx;word-break:break-all}
+button.button{display:flex;align-items:center;justify-content:center;min-height:96rpx;line-height:1.6;padding:20rpx 28rpx;background:#21634b;color:#fff;border-radius:18rpx;margin-top:24rpx;font-size:30rpx;font-weight:600;box-sizing:border-box}
+button.button::after{border:0}
+button.button.secondary{background:#fff;color:#202824;border:1rpx solid #dce2de}
+button.button[disabled]{opacity:.55}
+.source{padding:20rpx 0;border-bottom:1rpx solid #eef1ef;color:#606c66;word-break:break-all}
+.account-bar{display:flex;align-items:center;justify-content:space-between;gap:20rpx;background:#fff;border:1rpx solid #dce2de;border-radius:24rpx;padding:24rpx;margin:28rpx 0}
+.account-bar>view{min-width:0;flex:1}
+.account-state{font-size:28rpx;font-weight:600}
+.account-bar navigator,.back-link{display:flex;align-items:center;min-height:88rpx;color:#21634b;font-size:28rpx}
+.account-bar button{flex-shrink:0;margin:0;font-size:26rpx;min-height:88rpx;background:#fff;color:#202824}
+.error{color:#8e3228;background:#fcf1ef;border:1rpx solid #e8cac5;border-radius:18rpx;padding:24rpx;margin:24rpx 0;word-break:break-all}
+.empty{color:#606c66;text-align:center;padding:64rpx 24rpx}
+.card-actions{border-top:1rpx solid #eef1ef;margin-top:28rpx;padding-top:4rpx}
+.card-actions button{width:100%}
+.loading{padding:32rpx 0;color:#606c66}
+.back-link{justify-content:center}

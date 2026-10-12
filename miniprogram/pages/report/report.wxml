@@ -1,11 +1,16 @@
 <view class="shell">
-  <view wx:if="{{loading}}" class="muted">报告加载中...</view>
-  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{loading}}" class="loading">报告加载中...</view>
+  <view wx:if="{{error}}" class="card">
+    <view class="error">{{error}}</view>
+    <button class="button secondary" bindtap="retryReport">重新加载报告</button>
+  </view>
   <block wx:if="{{report}}">
-    <view class="tag">报告试读 · {{report.topic}}</view><view class="brand">{{report.title}}</view>
-    <view class="card"><view class="title">为什么重要</view><view>{{report.whyImportant}}</view></view>
-    <view class="card"><view class="title">学习建议</view><view>{{report.learnerAdvice}}</view></view>
-    <view class="card"><view class="title">来源</view><view class="source" wx:for="{{report.sources}}" wx:key="title">{{item.name}}：{{item.title}}</view></view>
-    <button class="button" open-type="share">生成分享卡片</button>
+    <view class="eyebrow">报告试读 · {{report.topic}}</view>
+    <view class="brand">{{report.title}}</view>
+    <view class="card"><view class="title">为什么重要</view><view>{{report.whyImportant || '暂无分析'}}</view></view>
+    <view class="card"><view class="title">学习建议</view><view>{{report.learnerAdvice || '暂无建议'}}</view></view>
+    <view class="card"><view class="title">来源</view><view class="source" wx:for="{{report.sources}}" wx:key="index">{{item.name}}：{{item.title}}</view><view wx:if="{{!report.sources || !report.sources.length}}" class="muted">暂无来源信息，请谨慎使用。</view></view>
+    <button class="button" open-type="share">分享报告</button>
   </block>
+  <navigator class="back-link" url="/pages/index/index" open-type="reLaunch">返回发现</navigator>
 </view>
