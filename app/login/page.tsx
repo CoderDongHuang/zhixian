@@ -15,13 +15,21 @@ export default function LoginPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setLoading(true); setMessage("");
     const url = step === "request" ? "/api/auth/request-code" : "/api/auth/verify-code";
-    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(step === "request" ? { email, inviteCode } : { email, inviteCode, code }) });
-    const result = await response.json(); setLoading(false);
-    if (!response.ok) return setMessage(result.error ?? "请求失败，请稍后重试");
-    if (step === "request") { setStep("verify"); setMessage("验证码已发送，有效期 10 分钟"); }
-    else {
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/onboarding");
+    try {
+      const response = await fetch(url, { method: "POST", signal: AbortSignal.timeout(20_000), headers: { "Content-Type": "application/json" }, body: JSON.stringify(step === "request" ? { email, inviteCode } : { email, inviteCode, code }) });
+      const result = await response.json();
+      if (!response.ok) { setMessage(typeof result?.error === "string" ? result.error : "请求失败，请稍后重试"); return; }
+      if (step === "request") { setStep("verify"); setMessage("验证码已发送，有效期 10 分钟"); }
+      else {
+        const next = new URLSearchParams(window.location.search).get("next");
+        // Only navigate within this origin, including when a next value is crafted.
+        const target = next ? new URL(next, window.location.origin) : null;
+        router.push(target?.origin === window.location.origin ? `${target.pathname}${target.search}${target.hash}` : "/onboarding");
+      }
+    } catch {
+      setMessage(step === "request" ? "未能确认验证码是否发送，请检查网络后重试；如已收到邮件，可使用最新验证码。" : "未能确认登录结果，请检查网络后重试；若验证码已失效，请重新获取。");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -31,8 +39,9 @@ export default function LoginPage() {
       <label>邮箱<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={step === "verify"} required /></label>
       <label>邀请码（新用户必填）<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} disabled={step === "verify"} /></label>
       {step === "verify" && <label>邮箱验证码<input inputMode="numeric" maxLength={6} value={code} onChange={(event) => setCode(event.target.value)} required /></label>}
-      {message && <p className="form-message">{message}</p>}
-      <button disabled={loading}>{loading ? "处理中..." : step === "request" ? "获取验证码" : "登录"}</button>
+      {message && <p className="form-message" role="status" aria-live="polite">{message}</p>}
+      <button type="submit" disabled={loading}>{loading ? "处理中..." : step === "request" ? "获取验证码" : "登录"}</button>
+      {step === "verify" && <button type="button" className="secondary" disabled={loading} onClick={() => { setStep("request"); setCode(""); setMessage(""); }}>重新获取验证码</button>}
     </form>
   </section></main>;
 }
