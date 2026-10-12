@@ -4,7 +4,7 @@
 
 本文是版本范围和状态的唯一来源。代码实现、隔离测试、生产验收与发布分别记录，不能相互替代。10 月 9 日修复前审计基线为 `a1c7dbf`。安全回补 `16b30a4`、预算 `ff0fd8c`、专题保存补修 `b41cdd2`、只读对账 `ec5ad16` 均已推送 main 并完成全链路 CI；对账批次 [38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 中预算 10/10、对账 11/11、skip 0，浏览器 72/72。未执行生产发布。
 
-10 月 12 日已完成预算最终请求字节限制与浏览器模型隔离 `a9bdbfa`（[完整 CI 38209019085](https://github.com/CoderDongHuang/zhixian/actions/runs/38209019085) 成功），以及脱敏只读配置预检 `905c2e4`（[完整 CI 38210407543](https://github.com/CoderDongHuang/zhixian/actions/runs/38210407543) 成功）。本机预算 10/10、配置预检 13/13，无跳过；CI 浏览器 74/74。纠错传播第三批已完成代码补修与 Edge 桌面/移动专项 2/2，完整回归及提交/CI 状态见 [发行补漏记录](release-preflight-2026-10-12.md)。各批直接推送 main，没有创建待合并 PR；最后提交 HEAD 的 GitHub 检查仍需核验。
+10 月 12 日已完成预算最终请求字节限制与浏览器模型隔离 `a9bdbfa`（[完整 CI 38209019085](https://github.com/CoderDongHuang/zhixian/actions/runs/38209019085) 成功），以及脱敏只读配置预检 `905c2e4`（[完整 CI 38210407543](https://github.com/CoderDongHuang/zhixian/actions/runs/38210407543) 成功）。本机预算 10/10、配置预检 13/13，无跳过。最新代码批次为纠错传播 `12e4d2f`，专题/新分享跟随当前结论、旧快照保留；本机 Edge 完整 76/76、专项 2/2，[完整 CI 38213917507](https://github.com/CoderDongHuang/zhixian/actions/runs/38213917507) 全阶段成功，CI 浏览器 76/76。具体范围见 [发行补漏记录](release-preflight-2026-10-12.md)。各批直接推送 main，没有创建待合并 PR；后续文档提交 HEAD 的 GitHub 检查仍独立核验。
 
 | 状态 | 版本/阶段 | 范围 | 发布条件 |
 | --- | --- | --- | --- |

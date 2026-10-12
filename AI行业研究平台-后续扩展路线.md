@@ -66,7 +66,7 @@
 
 - [x] 2026-10-12 预算最终字节限制与浏览器模型隔离补漏 `a9bdbfa`：本机真实 PostgreSQL/HTTP 预算 10/10、Edge 研究专项 4/4、Lint/测试类型通过；[GitHub 完整 CI 38209019085](https://github.com/CoderDongHuang/zhixian/actions/runs/38209019085) 全阶段成功，见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。
 - [x] 2026-10-12 配置预检工具 `905c2e4`：脱敏格式/冲突检查、Next 环境文件优先级与显式只读连接、迁移 checksum/向量列核验，本机 13/13 无跳过，[GitHub 完整 CI 38210407543](https://github.com/CoderDongHuang/zhixian/actions/runs/38210407543) 全阶段成功。实际本地配置缺口和平台/生产验收仍保留在 B，不把工具完成误记为配置完成；见 [预检记录](docs/release-preflight-2026-10-12.md)。
-- [x] 2026-10-12 纠错传播代码补修：专题和新分享读取当前已发布结论标题，个人笔记与旧快照不覆盖。修复前 Edge 已复现旧标题，修复后桌面/移动专项 2/2，覆盖撤回、重新审核、搜索、新版证据与旧版快照不变；完整回归及本批 CI 结果见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。生产真实样本验收保留在 C。
+- [x] 2026-10-12 纠错传播代码补修 `12e4d2f`：专题和新分享读取当前已发布结论标题，个人笔记与旧快照不覆盖。修复前 Edge 已复现旧标题，修复后桌面/移动专项 2/2，本机 Edge 完整 76/76；[GitHub 完整 CI 38213917507](https://github.com/CoderDongHuang/zhixian/actions/runs/38213917507) 全阶段成功、浏览器 76/76，覆盖撤回、重新审核、搜索、新版证据与旧版快照不变；见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。生产真实样本验收保留在 C。
 
 - [x] 2026-10-11 共享 AI 预算与只读对账：预算 `ff0fd8c`、对账 `ec5ad16`；本机和 [GitHub 完整 CI 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 预算 10/10、对账 11/11、无跳过，CI 浏览器 72/72。真实供应商与生产验收保留在 C 中。
 - [x] 2026-10-11 专题保存刷新补修 `b41cdd2`：实际 PATCH 持久化及阻断 RSC 的创建/编辑回归在桌面/移动视口通过，[完整 CI 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 成功；见 [专项记录](docs/research-collection-refresh-2026-10-11.md)。
