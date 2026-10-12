@@ -1,6 +1,6 @@
 # AI 行业研究平台后续扩展路线
 
-更新日期：2026-10-11。
+更新日期：2026-10-12。
 
 本文件只保留未完成的修复、验收和优化，不再把已有功能列为待开发。版本状态统一见 [docs/roadmap.md](docs/roadmap.md)，本轮问题、证据和验收标准见 [项目复核与个人版建设建议](docs/项目复核与个人版建设建议-2026-10-09.md)。
 
@@ -63,6 +63,8 @@
 - 英文界面/报告、复杂图谱、大规模服务拆分：先证明当前用户需求或吞吐瓶颈，再决定投入。
 
 ## 4. 完成项归档
+
+- [x] 2026-10-12 预算最终字节限制与浏览器模型隔离补漏：本机真实 PostgreSQL/HTTP 预算 10/10、Edge 研究专项 4/4、Lint/测试类型通过；GitHub 完整 CI 在推送后核验，见 [发行补漏记录](docs/release-preflight-2026-10-12.md)。
 
 - [x] 2026-10-11 共享 AI 预算与只读对账：预算 `ff0fd8c`、对账 `ec5ad16`；本机和 [GitHub 完整 CI 38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 预算 10/10、对账 11/11、无跳过，CI 浏览器 72/72。真实供应商与生产验收保留在 C 中。
 - [x] 2026-10-11 专题保存刷新补修 `b41cdd2`：实际 PATCH 持久化及阻断 RSC 的创建/编辑回归在桌面/移动视口通过，[完整 CI 38120827548](https://github.com/CoderDongHuang/zhixian/actions/runs/38120827548) 成功；见 [专项记录](docs/research-collection-refresh-2026-10-11.md)。

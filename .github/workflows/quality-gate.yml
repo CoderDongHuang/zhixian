@@ -72,6 +72,12 @@ jobs:
       - run: npm run test:auth-http
       - run: npm run test:operations:http
       - run: npm run test:e2e
+        env:
+          # Deliberately configured in the parent process: Playwright must clear
+          # these before starting its isolated server and use rules-v1 instead.
+          RESEARCH_AI_API_KEY: isolation-regression-only
+          RESEARCH_AI_API_URL: http://127.0.0.1:3199
+          RESEARCH_AI_MODEL: must-not-be-called
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

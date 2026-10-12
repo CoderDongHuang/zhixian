@@ -29,8 +29,12 @@ test("report retains exact original revisions and both stances after a source co
     expect(snapshot.contentHash).toBeTruthy();
   }
   await db.rawDocument.update({ where: { id: "e2e-doc-ai" }, data: { content: "更新后的原文已经变化", contentHash: "new-research-hash" } });
+  const callsBefore = await db.aiCall.count({ where: { scope: "research-agent" } });
   expect((await page.request.post(`/api/research/agent/tasks/${taskId}/confirm`)).status()).toBe(200);
   const after = await db.researchAgentTask.findUniqueOrThrow({ where: { id: taskId } });
+  expect(after.modelVersion).toBe("rules-v1");
+  expect((await db.researchAgentEvent.findFirstOrThrow({ where: { taskId, status: "COMPLETED" } })).detail).toBe("规则模式完成");
+  expect(await db.aiCall.count({ where: { scope: "research-agent" } })).toBe(callsBefore);
   expect(after.evidenceSnapshot).toEqual(before.evidenceSnapshot);
   const answer = after.answer as unknown as ResearchAgentAnswer;
   expect(answer.facts.find((fact) => fact.claim === "E2E conflicting evidence")?.kind).toBe("CONFLICT");

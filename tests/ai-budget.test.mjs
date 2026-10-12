@@ -24,6 +24,10 @@ test("budget request bounds output, UTF-8 bytes, streams, model and redirects", 
   const request = boundedAiRequest(body, "test", policy);
   assert.equal(JSON.parse(request.body).max_tokens, 100);
   assert.equal(request.redirect, "error");
+  const unicodeRequest = { ...body, body: JSON.stringify({ model: "test", messages: [{ role: "user", content: "中文🙂" }] }) };
+  const finalBytes = Buffer.byteLength(boundedAiRequest(unicodeRequest, "test", policy).body, "utf8");
+  assert.throws(() => boundedAiRequest(unicodeRequest, "test", { ...policy, maxInputBytes: finalBytes - 1 }), /AI_BUDGET_INVALID_REQUEST/);
+  assert.equal(Buffer.byteLength(boundedAiRequest(unicodeRequest, "test", { ...policy, maxInputBytes: finalBytes }).body, "utf8"), finalBytes);
   for (const extra of [{ max_tokens: 101 }, { max_completion_tokens: -1 }, { stream: true }, { n: 2 }, { model: "other" }]) assert.throws(() => boundedAiRequest({ ...body, body: JSON.stringify({ ...JSON.parse(body.body), ...extra }) }, "test", policy));
   assert.throws(() => boundedAiRequest({ ...body, body: "{" }, "test", policy));
   assert.throws(() => boundedAiRequest(body, "test", { ...policy, maxInputBytes: 10 }));
@@ -80,7 +84,11 @@ test("real PostgreSQL and HTTP budget admission, settlement and failure isolatio
       await assert.rejects(call(db, { AI_BUDGET_ENFORCE: "true" }), /CONFIG_REQUIRED/);
       await assert.rejects(call(db, envFor()), /PRICE_REQUIRED/);
       await assert.rejects(call(db, { ...env, AI_BUDGET_JSON: "{}" }), /INVALID_CONFIG/);
+      // Raw JSON fits, but the injected max_tokens field exceeds the limit.
+      await assert.rejects(call(db, { ...env, ...envFor({ maxInputBytes: Buffer.byteLength(body.body, "utf8") }) }), /INVALID_REQUEST/);
       assert.equal(requests, before);
+      assert.equal(await db.aiBudgetReservation.count({ where: { scope: prefix } }), 0);
+      assert.equal(await db.aiCall.count({ where: { scope: prefix } }), 0);
     });
     await t.test("unknown usage, network failure and excess cost hold funds and stop later calls", async () => {
       for (const scenario of ["unknown", "network", "excess"]) {
