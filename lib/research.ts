@@ -53,9 +53,10 @@ async function snapshotItem(tx: Prisma.TransactionClient, type: ResearchItemType
     });
     if (!event) return null;
     const analysis = event.analyses[0];
+    if (!analysis) return null;
     const sources: SnapshotSource[] = analysis.evidence.map((evidence) => ({ title: evidence.document.title, url: evidence.document.url, source: evidence.document.source.name, quote: evidence.quote, stance: evidence.stance }));
     for (const { document } of event.documents) if (!sources.some((source) => source.url === document.url)) sources.push({ title: document.title, url: document.url, source: document.source.name });
-    return { type, id, title, note, href: researchTargetHref(type, id), summary: analysis.summary, updatedAt: analysis.analyzedAt.toISOString(), sources };
+    return { type, id, title: analysis.summary || event.title, note, href: researchTargetHref(type, id), summary: analysis.summary, updatedAt: analysis.analyzedAt.toISOString(), sources };
   }
   if (type === "ENTITY") {
     const entity = await tx.entity.findUnique({ where: { id }, include: { mentions: { where: { event: { isPublic: true } }, include: { document: { include: { source: true } } } } } });
