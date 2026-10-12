@@ -9,7 +9,7 @@
 1. 暂停写入任务，确认 Content pipeline、Digest delivery 等生产调度仍处于停用状态。
 2. 创建可验证的数据库快照，并记录恢复点、数据库实例和当前应用提交。
 3. 用 `npm run configuration:check -- --database` 进行只读连接、迁移 checksum 与 vector 检查；在隔离实例按台账已应用的迁移重建预期 schema，再与生产比较。发现 drift 时先形成可审核修复方案。
-4. 仅当台账为空且真实 schema 与 `20260823000000_baseline` SQL 完全一致时，才执行 `npx prisma migrate resolve --applied 20260823000000_baseline`。有台账的库不重复登记；空库不登记基线，直接部署完整迁移链。
+4. 仅当台账为空且真实 schema 与 `20260823000000_baseline` SQL 一致时，才执行 `npx prisma migrate resolve --applied 20260823000000_baseline`。若存在仅实现形式不同的对象，须逐项证明语义等价、记录差异并在恢复库完整预演，不以“看起来相似”登记。有台账的库不重复登记；空库不登记基线，直接部署完整迁移链。
 5. 根据当前 `prisma/migrations` 和生产台账确定全部待应用迁移，逐项审查 SQL 的数据影响，在恢复后的隔离实例完整预演，再执行 `npm run db:migrate:deploy`，不限于早期 P1/P2 两项。
 6. 执行 `npx prisma migrate status`，确认没有 failed 或 pending migration，再部署依赖新字段的应用版本。
 7. 验证 `/api/health`、OTP 请求/验证、内容采集 dry run 和 `PipelineRun` 写入。生产调度继续暂停，按用户确认的运营计划决定是否恢复。
@@ -19,7 +19,9 @@
 1. 在隔离的 pgvector PostgreSQL 上从空库执行全部迁移和测试。
 2. 生产迁移前创建快照并记录应用版本。
 3. 先运行 `npm run db:migrate:deploy`，再发布向后兼容的应用代码。
-4. 发布后执行 `npx prisma migrate status` 和健康检查。
+4. 发布后执行 `npx prisma migrate status`，确认 checksum，并检查首页等真实业务正文；HTTP 200 或数据库连接正常不能排除 Next 流式错误页。执行 `npm run monitor:production` 时也需有效监控令牌与明确运营状态。
+
+2026-10-12 已完成当前生产基线登记和 19 项增量迁移，20 项台账完整。应用 public schema 备份、实际恢复、等价约束差异、数据影响和线上复验见 [生产恢复记录](production-recovery-2026-10-12.md)。
 
 ## 失败与回滚
 
