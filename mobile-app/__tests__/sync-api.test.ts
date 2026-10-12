@@ -2,6 +2,9 @@ import { ApiRequestError, fetchWithPolicy } from "../src/api";
 import { applySyncChanges } from "../src/sync";
 import type { SyncSnapshot } from "../src/types";
 
+// Sync policy tests must not start the native telemetry SDK's cleanup timer.
+jest.mock("../src/telemetry", () => ({ track: jest.fn() }));
+
 const snapshot: SyncSnapshot = { bookmarks: [{ feedItemId: "old" }], reads: [], paths: [{ id: "path", title: "Path", goal: "Learn", level: "beginner", progress: 0 }], tasks: [{ id: "task", pathId: "path", title: "Task", description: "", estimatedMinutes: 5, completedAt: null, scheduledFor: "2026-08-24T00:00:00.000Z" }] };
 
 afterEach(() => jest.restoreAllMocks());
