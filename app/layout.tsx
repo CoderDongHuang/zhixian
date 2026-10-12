@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./design-system.css";
+import { SiteHeader } from "./site-header";
 import { PwaRegistration } from "./pwa-registration";
 
 export const metadata: Metadata = {
@@ -10,9 +12,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1220",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body>{children}<PwaRegistration /></body></html>;
+  return <html lang="zh-CN"><body><SiteHeader /><div id="page-content" tabIndex={-1}>{children}</div><PwaRegistration /></body></html>;
 }
