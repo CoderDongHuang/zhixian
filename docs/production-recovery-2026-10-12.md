@@ -34,12 +34,14 @@
 - [x] 浏览器点击趋势、更多→实体、研究、学习、返回发现；菜单路由切换后关闭。截图位于 `test-results/interface/production-home.jpg`。
 - [x] 生产迁移后只读确认 4 用户、1,619 文档、635 事件、472 分析仍在；472 STALE、文档向量 0，与预演一致。
 - [x] 代码提交 `3982495` 的完整 GitHub CI 与 Vercel 部署状态均为 success；公开站点实际渲染新版 Web。
-- [ ] 本恢复记录提交后的最终 CI 与部署另行核验，不将上一 SHA 的成功替代最终 SHA。
+- [x] 本恢复记录批次 `a2f8c4c` 的 [完整 CI 38230580110](https://github.com/CoderDongHuang/zhixian/actions/runs/38230580110) 成功，浏览器 86/86；该 SHA 的 Vercel 部署状态也为 success。后续纯凭证更新的最终状态以 GitHub 当前提交检查为准，不无限回写自引用 SHA。
 
 内容可能暂时为空：迁移必须使无版本凭证的历史分析失效，生产采集仍暂停；不能为了填满首页伪造重新发布。
 
 运行链接：[https://zhixian.asia](https://zhixian.asia)。本次应用 public schema 备份恢复已完成，不等于完整 Supabase 实例灾备、切换或 RPO/RTO 验收。平台配置对齐、真实模型/通知、历史材料重新分析、原生及微信真机仍待独立验收。
 
 本机 `.env.local` 的连接覆盖仍无效，`DIRECT_URL` 尚未持久配齐；本次使用既有 Prisma 有效配置和实际验证成功的 session pooler，不宣称已经取得 Supabase 独立 direct 主机。线上首页的“采集状态未确认”仍反映部署未明确 `CONTENT_PIPELINE_STATE`，不能把暂停 GitHub cron 当作该环境变量已配置。
+
+本机 Node `pg` 对已验证 session pooler 使用 `sslmode=verify-full` 只读连接时返回 `SELF_SIGNED_CERT_IN_CHAIN`；需取得可信平台 CA 后继续验收。没有采用 `rejectUnauthorized:false`、`NODE_TLS_REJECT_UNAUTHORIZED=0` 或 libpq 弱校验模式规避这一问题，也不将 Prisma/备份客户端连接成功等同于 Node 完整证书链验收。
 
 Vercel 诊断插件此前被自动审批服务 404 阻断，未执行，也未通过其他工具绕过该插件访问；本次使用既有数据库连接独立定位并修复根因。
