@@ -25,6 +25,7 @@ export default function LoginPage() {
         // Only navigate within this origin, including when a next value is crafted.
         const target = next ? new URL(next, window.location.origin) : null;
         router.push(target?.origin === window.location.origin ? `${target.pathname}${target.search}${target.hash}` : "/onboarding");
+        router.refresh();
       }
     } catch {
       setMessage(step === "request" ? "未能确认验证码是否发送，请检查网络后重试；如已收到邮件，可使用最新验证码。" : "未能确认登录结果，请检查网络后重试；若验证码已失效，请重新获取。");

@@ -3,6 +3,7 @@ import "./globals.css";
 import "./design-system.css";
 import { SiteHeader } from "./site-header";
 import { PwaRegistration } from "./pwa-registration";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "知线 | AI 行业研究助手",
@@ -15,6 +16,7 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body><SiteHeader /><div id="page-content" tabIndex={-1}>{children}</div><PwaRegistration /></body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getCurrentUser();
+  return <html lang="zh-CN"><body><SiteHeader user={user ? { email: user.email } : null} /><div id="page-content" tabIndex={-1}>{children}</div><PwaRegistration /></body></html>;
 }

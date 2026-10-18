@@ -9,11 +9,11 @@ export async function login(page: Page, email = "e2e-a@example.com") {
   await page.goto("/login");
   await page.locator('input[type="email"]').fill(email);
   const otpResponse = page.waitForResponse((response) => response.url().endsWith("/api/auth/request-code") && response.request().method() === "POST");
-  await page.locator('form button[type="submit"]').click();
+  await page.locator('.auth-panel form button[type="submit"]').click();
   const { testCode } = await (await otpResponse).json();
   await page.locator('input[inputmode="numeric"]').fill(testCode);
   const verifyResponse = page.waitForResponse((response) => response.url().endsWith("/api/auth/verify-code") && response.request().method() === "POST");
-  await page.locator('form button[type="submit"]').click();
+  await page.locator('.auth-panel form button[type="submit"]').click();
   expect((await verifyResponse).ok()).toBeTruthy();
   await page.waitForURL(/\/(onboarding|$)/);
 }
