@@ -1,5 +1,7 @@
 # 账号设置上线
 
+2026-10-20 已补齐生产迁移并实测登录后的个人中心页面，恢复与备份记录见 [账号故障恢复](account-recovery-2026-10-20.md)。
+
 本次新增个人中心的头像、邮箱重新绑定和登录密码设置，以及邮箱密码登录。网页标识、浏览器标签图标与安装图标统一来自 `public/brand-mark.svg`。
 
 部署新版服务前，对目标数据库运行 `npm run db:migrate:deploy`。迁移 `20261019000100_account_settings` 仅新增 `AccountProfile` 和 `AccountVerification` 表及关联，不修改已有账号数据。再运行 `npm run db:generate` 和 `npm run build`。生产环境继续使用现有 `AUTH_SECRET`、`EMAIL_API_KEY`、`EMAIL_FROM`；没有配置邮件服务时，账号验证码发送会明确失败。

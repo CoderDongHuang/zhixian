@@ -4,7 +4,7 @@ import { finishJob } from "./job-policy.mjs";
 import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 import { documentContentHash, githubMetrics, normalizeDocumentText } from "./ingest-policy.mjs";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ transactionOptions: { maxWait: 15000, timeout: 60000 } });
 const startedAt = new Date();
 const replay = await replayTarget(prisma, "source-ingest");
 const pollRevision = replay?.revision ?? String(Math.floor(startedAt.getTime() / 900000));
@@ -89,7 +89,7 @@ for (const config of sources.filter((item) => !replay || replay.resourceId === i
     }
     await tx.source.update({ where: { id: source.id }, data: { etag: response.headers.get("etag"), lastModified: response.headers.get("last-modified"), lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
     return counts;
-    });
+    }, { maxWait: 15000, timeout: 60000 });
     created += counts.created; updated += counts.updated; unchanged += counts.unchanged; snapshots += counts.snapshots;
     console.log(`${config.name}: fetch completed`);
     return true;

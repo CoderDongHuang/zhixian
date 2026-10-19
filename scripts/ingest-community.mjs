@@ -3,7 +3,7 @@ import { finishJob } from "./job-policy.mjs";
 import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
 import { documentContentHash } from "./ingest-policy.mjs";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ transactionOptions: { maxWait: 15000, timeout: 60000 } });
 const startedAt = new Date();
 const replay = await replayTarget(prisma, "community-ingest");
 const pollRevision = replay?.revision ?? String(Math.floor(startedAt.getTime() / 900000));
@@ -52,7 +52,7 @@ for (const config of sources.filter((item) => !replay || replay.resourceId === i
       for (const item of items) counts[await save(tx, source, item)]++;
       await tx.source.update({ where: { id: source.id }, data: { lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
       return counts;
-    });
+    }, { maxWait: 15000, timeout: 60000 });
     created += counts.created; updated += counts.updated; unchanged += counts.unchanged; skipped += counts.skipped; console.log(`${config.name}: ${JSON.stringify(counts)}`);
     return true;
     });
@@ -78,7 +78,7 @@ if ((!replay || replay.resourceId === "https://api.producthunt.com/v2/posts") &&
     for (const { node } of payload.data?.posts?.edges || []) counts[await save(tx, source, { url: node.url, title: node.name, content: `${node.tagline || ""}\n${node.description || ""}`, publishedAt: node.createdAt })]++;
       await tx.source.update({ where: { id: source.id }, data: { lastFetchedAt: new Date(), fetchVersion: { increment: 1 } } });
       return counts;
-    });
+    }, { maxWait: 15000, timeout: 60000 });
     created += counts.created; updated += counts.updated; unchanged += counts.unchanged; skipped += counts.skipped; console.log(`Product Hunt: ${JSON.stringify(counts)}`);
     return true;
     });

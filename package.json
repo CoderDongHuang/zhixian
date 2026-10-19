@@ -76,6 +76,7 @@
     "db:push": "prisma db push",
     "db:migrate:deploy": "prisma migrate deploy",
     "invite:create": "node --env-file-if-exists=.env scripts/create-invite.mjs",
+    "sources:collect:free": "node scripts/collect-free.mjs",
     "sources:ingest": "node --env-file-if-exists=.env scripts/ingest-sources.mjs",
     "sources:community": "node --env-file-if-exists=.env scripts/ingest-community.mjs",
     "content:embed": "node --env-file-if-exists=.env scripts/embed-documents.mjs",
