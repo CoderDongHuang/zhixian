@@ -19,7 +19,10 @@ test("GET and prefetch never write reading or learning state; explicit actions d
   expect(await db.syncChange.count({ where: { userId, resource: "read" } })).toBe(0);
   expect(await db.learningPath.count({ where: { userId } })).toBe(0);
   expect(await db.learningTask.count({ where: { userId } })).toBe(0);
+  const initialized = page.waitForResponse(response => response.url().endsWith("/api/learning/initialize") && response.request().method() === "POST");
   await page.getByRole("button", { name: "生成今日学习任务" }).click();
+  const initializationResponse = await initialized;
+  expect(initializationResponse.ok(), await initializationResponse.text()).toBeTruthy();
   await expect(page.locator(".today-task h2")).toBeVisible();
   expect(await db.learningTask.count({ where: { userId } })).toBe(1);
   await page.goto("/events/e2e-event-ai");
