@@ -5,6 +5,7 @@ import { createSessionToken, hashSecret, normalizeEmail, SESSION_COOKIE, SESSION
 import { enforceAuthLimits, otpVerifyRules, verifyLatestOtp } from "@/lib/auth-security";
 import { prisma } from "@/lib/prisma";
 import { claimWebAccount, InvalidAuthClaim } from "@/lib/auth-claim";
+import { lockAccount } from "@/lib/account-storage";
 
 export async function POST(request: Request) {
   const body = await parseAuthInput(request, "webVerify");
@@ -27,6 +28,12 @@ export async function POST(request: Request) {
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   try {
     await prisma.$transaction(async (tx) => {
+    const existing = await tx.user.findUnique({ where: { email }, select: { id: true } });
+    if (existing) {
+      await lockAccount(tx, existing.id);
+      const current = await tx.user.findUnique({ where: { id: existing.id }, select: { email: true } });
+      if (current?.email !== email) throw new InvalidAuthClaim("Email changed during login");
+    }
     const user = await claimWebAccount(tx, email, inviteCode, otp.id);
     await tx.session.create({ data: { userId: user.id, tokenHash: hashSecret(token), expiresAt } });
     });

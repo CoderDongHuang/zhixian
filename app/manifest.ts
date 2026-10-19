@@ -10,11 +10,11 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     background_color: "#f7f8fa",
-    theme_color: "#0b1220",
+    theme_color: "#21634b",
     categories: ["news", "education", "productivity"],
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icon-192.png?v=zhi-1", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png?v=zhi-1", sizes: "512x512", type: "image/png" },
     ],
   };
 }

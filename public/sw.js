@@ -1,5 +1,5 @@
-const CACHE = "zhixian-v04";
-const OFFLINE_ASSETS = ["/offline", "/icon-192.png", "/icon-512.png", "/brand-logo.png", "/manifest.webmanifest"];
+const CACHE = "zhixian-v05-zhi";
+const OFFLINE_ASSETS = ["/offline", "/brand-mark.svg", "/icon-192.png?v=zhi-1", "/icon-512.png?v=zhi-1", "/favicon.png?v=zhi-1", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(OFFLINE_ASSETS)).then(() => self.skipWaiting()));

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { AccountAvatar } from "./account-avatar";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -13,7 +15,7 @@ const navigation = [
   { label: "设置", links: [["/onboarding", "阅读偏好"], ["/privacy", "隐私政策"]] },
 ] as const;
 
-export function SiteHeader({ user }: { user: { email: string | null } | null }) {
+export function SiteHeader({ user }: { user: { id: string; email: string | null } | null }) {
   const path = usePathname();
   const header = useRef<HTMLElement>(null);
   const isCurrent = (href: string) => href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
@@ -46,7 +48,7 @@ export function SiteHeader({ user }: { user: { email: string | null } | null }) 
   }}>
     <a className="skip-link" href="#page-content">跳到主要内容</a>
     <div className="site-header-inner">
-      <Link href="/" className="site-brand" aria-label="知线首页" onClick={() => closeMenus()}><span className="brand-symbol" aria-hidden="true">知</span><span>知线<small>AI 行业研究</small></span></Link>
+      <Link href="/" className="site-brand" aria-label="知线首页" onClick={() => closeMenus()}><Image className="brand-symbol" src="/brand-mark.svg" alt="" width={40} height={40} priority /><span>知线<small>AI 行业研究</small></span></Link>
       <nav className="primary-nav" aria-label="主导航">
         {navigation.map(item => "href" in item
           ? <Link key={item.label} href={item.href} aria-current={isCurrent(item.href) ? "page" : undefined} onClick={() => closeMenus()}>{item.label}</Link>
@@ -59,7 +61,7 @@ export function SiteHeader({ user }: { user: { email: string | null } | null }) 
       </nav>
       <details className="site-menu account-menu" onToggle={event => { if (event.currentTarget.open) closeMenus(event.currentTarget); }}>
         <summary className="avatar-trigger" aria-label="用户菜单" title={user?.email || "用户菜单"}>
-          <span className="account-avatar" aria-hidden="true">{user ? user.email?.charAt(0).toUpperCase() || "知" : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>}</span>
+          {user ? <AccountAvatar key={user.id} userId={user.id} email={user.email} /> : <span className="account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg></span>}
           <span className="menu-chevron" aria-hidden="true">⌄</span>
         </summary>
         <div className="site-dropdown account-dropdown">

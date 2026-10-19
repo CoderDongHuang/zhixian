@@ -40,7 +40,7 @@
     "test:review-versions": "node --test tests/review-versions.test.mjs",
     "test:db:prepare": "node --experimental-strip-types scripts/prepare-e2e-database.mjs",
     "test:auth-http": "node --test tests/auth-real-http.test.mjs",
-    "test:auth-security": "node --experimental-strip-types --test tests/e2e-policy.test.ts tests/auth-security-storage.test.ts",
+    "test:auth-security": "node --experimental-strip-types --test tests/e2e-policy.test.ts tests/auth-security-storage.test.ts tests/account-settings.test.ts",
     "test:research-share": "node --experimental-strip-types --test tests/research-share.test.ts tests/research-share-migration.test.mjs",
     "test:web-push": "node --experimental-strip-types --test tests/web-push-client.test.ts tests/web-push-storage.test.ts",
     "test:research-execution": "node --experimental-strip-types --test tests/research-execution.test.ts",
@@ -111,6 +111,7 @@
     "pg": "^8.22.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "sharp": "0.35.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

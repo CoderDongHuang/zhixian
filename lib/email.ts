@@ -1,4 +1,4 @@
-export async function sendLoginCode(email: string, code: string, options: { fetch?: typeof fetch; env?: NodeJS.ProcessEnv } = {}) {
+export async function sendLoginCode(email: string, code: string, options: { fetch?: typeof fetch; env?: NodeJS.ProcessEnv; purpose?: string } = {}) {
   const env = options.env ?? process.env;
   if (!env.EMAIL_API_KEY || !env.EMAIL_FROM) {
     if (env.NODE_ENV === "production") throw new Error("Email service is not configured");
@@ -15,8 +15,8 @@ export async function sendLoginCode(email: string, code: string, options: { fetc
     body: JSON.stringify({
       from: `知线 <${env.EMAIL_FROM}>`,
       to: [email],
-      subject: "你的知线登录验证码",
-      html: `<p>你的登录验证码是：</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>验证码 10 分钟内有效，请勿转发。</p>`,
+      subject: `你的知线${options.purpose || "登录"}验证码`,
+      html: `<p>你的${options.purpose || "登录"}验证码是：</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>验证码 10 分钟内有效，请勿转发。</p>`,
     }),
     signal: AbortSignal.timeout(15_000),
   });

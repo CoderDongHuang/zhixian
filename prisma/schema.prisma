@@ -112,6 +112,8 @@ enum LearningTaskType {
 model User {
   id                    String                 @id @default(cuid())
   email                 String?                @unique
+  accountProfile        AccountProfile?
+  accountVerifications  AccountVerification[]
   createdAt             DateTime               @default(now())
   preference            UserPreference?
   bookmarks             Bookmark[]
@@ -141,6 +143,29 @@ model User {
   researchShares        ResearchShare[]
   researchNotifications ResearchNotification[]
   researchAgentTasks     ResearchAgentTask[]
+}
+
+model AccountProfile {
+  userId       String   @id
+  passwordHash String?
+  avatar       Bytes?
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AccountVerification {
+  id           String   @id @default(cuid())
+  userId       String
+  purpose      String
+  email        String
+  codeHash     String
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purpose])
+  @@index([expiresAt])
 }
 
 model WechatIdentity {
