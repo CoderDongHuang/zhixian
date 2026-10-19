@@ -106,7 +106,7 @@ export function AccountSettings({ userId, email, hasPassword }: { userId: string
       </form>
       <form className="account-setting-card" onSubmit={savePassword} aria-label="设置登录密码">
         <div><p className="eyebrow">账号安全</p><h2>{hasPassword ? "更改密码" : "设置登录密码"}</h2><p>{email ? "验证当前邮箱后设置新密码，忘记原密码也可修改。" : "请先绑定邮箱，再设置登录密码。"}</p></div>
-        <CodeInput key={`password:${email}`} label="密码验证邮件验证码" purpose="password" email={email || ""} value={passwordCode} onChange={setPasswordCode} disabled={busy || !email} />
+        <CodeInput key={`password:${email}`} label="当前邮箱验证码" purpose="password" email={email || ""} value={passwordCode} onChange={setPasswordCode} disabled={busy || !email} />
         <label>新密码<input type="password" autoComplete="new-password" minLength={10} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} required disabled={busy || !email} /></label>
         <label>确认新密码<input type="password" autoComplete="new-password" minLength={10} maxLength={128} value={confirmation} onChange={event => setConfirmation(event.target.value)} required disabled={busy || !email} /></label>
         <p className="setting-help">10–128 位，包含英文字母和数字。修改邮箱或密码后，其他设备需重新登录。</p>

@@ -26,7 +26,7 @@ test("avatar, password and email settings persist and update the header and logi
     const image = await page.request.get("/api/account/avatar");
     expect(image.headers()["cache-control"]).toBe("private, no-store");
     expect(await sharp(await image.body()).metadata()).toMatchObject({ width: 256, height: 256, format: "webp" });
-    await fillCode(page, "密码验证邮件验证码");
+    await fillCode(page, "当前邮箱验证码");
     await page.getByLabel("新密码", { exact: true }).fill("Account-password123");
     await page.getByLabel("确认新密码", { exact: true }).fill("Account-password123");
     await page.getByRole("button", { name: "保存密码", exact: true }).click();
