@@ -10,6 +10,7 @@ export function InitializeLearningButton() {
     try {
       const response = await fetch("/api/learning/initialize", { method: "POST", signal: AbortSignal.timeout(90_000) });
       if (!response.ok) throw new Error("initialization_failed");
+      await response.json();
       // Reload the server-rendered path, as the replan action does, so the
       // empty route cannot remain visible after a successful initialization.
       window.location.reload();
