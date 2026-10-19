@@ -20,7 +20,10 @@ test("avatar, password and email settings persist and update the header and logi
     await page.goto("/account");
     await expect(page.getByRole("heading", { name: "设置登录密码", exact: true })).toBeVisible();
     const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#21634b" } }).png().toBuffer();
+    const uploaded = page.waitForResponse(response => response.url().endsWith("/api/account/avatar") && response.request().method() === "POST");
     await page.getByLabel("选择头像图片").setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: png });
+    const uploadResponse = await uploaded;
+    expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy();
     await expect(page.getByRole("status").filter({ hasText: "头像已更新" })).toBeVisible();
     await expect(page.locator(".avatar-trigger img")).toBeVisible();
     const image = await page.request.get("/api/account/avatar");

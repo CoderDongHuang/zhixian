@@ -28,7 +28,8 @@ export async function getTopicAffinity(userId: string) {
   const affinity = new Map<string, number>();
   for (const event of events) {
     if (!event.topic) continue;
-    const ageDays = (Date.now() - event.createdAt.getTime()) / 86400000;
+    // Next's data cache serializes dates to strings on cache hits.
+    const ageDays = (Date.now() - new Date(event.createdAt).getTime()) / 86400000;
     const decay = Math.exp(-ageDays / 35);
     affinity.set(event.topic, (affinity.get(event.topic) ?? 0) + (ACTION_WEIGHTS[event.action] ?? 0.05) * event.value * decay);
   }

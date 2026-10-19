@@ -22,9 +22,11 @@ test("password hashes are salted, reject wrong passwords and tolerate absent has
 });
 
 test("account mutations reject cross-origin requests and oversized or malformed bodies", async () => {
-  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { origin: "https://evil.example" } })), false);
-  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { "sec-fetch-site": "cross-site" } })), false);
-  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { origin: "https://example.com" } })), true);
+  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { origin: "https://evil.example" } }), "https://example.com"), false);
+  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { "sec-fetch-site": "cross-site" } }), "https://example.com"), false);
+  assert.equal(sameOrigin(new Request("https://example.com/api/account/email", { headers: { origin: "https://example.com" } }), "https://example.com"), true);
+  assert.equal(sameOrigin(new Request("http://localhost:3000/api/account/email", { headers: { origin: "https://example.com" } }), "https://example.com"), true);
+  assert.equal(sameOrigin(new Request("http://localhost:3000/api/account/email", { headers: { origin: "https://evil.example", "x-forwarded-host": "evil.example" } }), "https://example.com"), false);
   for (const body of ["[]", "null", "{", JSON.stringify({ password: "x".repeat(8200) })]) {
     assert.equal(await readAccountJson(new Request("https://example.com", { method: "POST", headers: { "Content-Type": "application/json" }, body })), null);
   }

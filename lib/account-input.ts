@@ -1,6 +1,11 @@
-export function sameOrigin(request: Request) {
+export function sameOrigin(request: Request, appUrl = process.env.APP_URL) {
   const origin = request.headers.get("origin");
-  return (!origin || origin === new URL(request.url).origin) && request.headers.get("sec-fetch-site") !== "cross-site";
+  // Next route handlers can expose an internal host/port in request.url.
+  // Use the configured public origin rather than trusting forwarded headers.
+  try {
+    const expected = new URL(appUrl || request.url).origin;
+    return (!origin || origin === expected) && request.headers.get("sec-fetch-site") !== "cross-site";
+  } catch { return false; }
 }
 
 export async function readAccountJson(request: Request): Promise<Record<string, unknown> | null> {
