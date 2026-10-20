@@ -8,7 +8,7 @@
 
 | 状态 | 版本/阶段 | 范围 | 发布条件 |
 | --- | --- | --- | --- |
-| 阶段二进行中，未完成真机与分发验收 | 安装知线 Android 测试包 | 已接通构建、签名产物收集、固定下载页/二维码及发布校验；Firebase 客户端文件已配置 EAS preview，服务账号已绑定 FCM v1，Android 16 真机已连接；已修复 preview 的 Sentry 上传阻塞，构建号 3/4 已排队 | [阶段二记录](安装知线与多平台下载规划.md)；[Firebase 接入指南](mobile/firebase-android-setup.md)；待实际 APK、真机推送与覆盖升级；页面保持“测试包准备中” |
+| 阶段二基础链路完成，推送闭环与公开分发待完成 | 安装知线 Android 测试包 | 已接通构建、签名产物收集、Firebase/FCM v1、Android 16 真机安装、冷启动、同签名覆盖升级和通知权限核验；构建号 3/4 的 APK 与 SHA-256 已记录；推送按钮出现 `SERVICE_NOT_AVAILABLE`，尚无 token、服务端登记或送达证据 | [阶段二记录](安装知线与多平台下载规划.md)；[Firebase 接入指南](mobile/firebase-android-setup.md)；需设备主人登录测试账号后复测 FCM，并完成固定 GitHub prerelease 后才开放下载 |
 | 阶段一开发及浏览器验收完成，已合并推送 main | 安装知线与多平台下载 | `/install` 固定入口、五平台指南、PWA 安装状态、`/settings` 缓存管理；本机 Edge 桌面/手机视口 32/32 + 真实 SW 重注册 2/2，Lint/双类型检查/构建通过；[完整 CI](https://github.com/CoderDongHuang/zhixian/actions/runs/39433677862) 成功；[PR #20](https://github.com/CoderDongHuang/zhixian/pull/20) 已合并，提交 `026e4e4` | [推进记录](安装知线与多平台下载规划.md)；系统真实安装/卸载待验收，原生包与商店发行仍按阶段二至五推进 |
 | 历史发布基线，本轮未核验线上版本 | V0.3.1 Web/PWA | 信息流、学习中心、报告导出、微信小程序、实体关系、Web Push | 不把历史验收当作本轮线上验收 |
 | 发布候选，原生发行仍阻塞 | V0.4.0 RC | React Native App、移动同步、Expo Push、离线阅读、语音和生物识别；依赖回补/同步代码及 CI 已通过 | EAS/签名、真机与 48 小时稳定性验收；官方安全版本发布后撤销临时回补 |

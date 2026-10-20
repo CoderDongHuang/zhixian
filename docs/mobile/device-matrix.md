@@ -4,10 +4,20 @@
 
 ## Android 阶段二设备准备（2026-10-21）
 
-- 设备：用户的 Xiaomi 15 Pro（型号 `2410DPN6CC`），Android 16 / API 36，ABI `arm64-v8a`。USB 调试已授权，ADB 状态为 `device`；尚未安装 `asia.zhixian.app`。
+- 设备：用户的 Xiaomi 15 Pro（型号 `2410DPN6CC`），Android 16 / API 36，ABI `arm64-v8a`。USB 调试已授权，ADB 状态为 `device`；已安装 `asia.zhixian.app` 构建号 4。
 - Google Play 服务已安装（版本 `26.04.38`）。首次检查为停用，用户在手机开启 Google 基础服务后，ADB 已核验主用户 `enabled=1`、`stopped=false`；这只是推送测试准备，不代表 FCM 已送达。
-- 待安装：版本 `0.4.0` 构建号 3（基础包）→ 构建号 4（含 Firebase 配置），EAS 构建 ID 分别为 `a8fede2e-1809-4ac0-a319-73b95d5c9413`、`16e80300-f11a-48eb-b325-c834cb04065f`。两个构建均基于源码 `2e719c1`，最近状态为排队。
-- 测试执行：维护者通过本机 ADB 核验安装、版本与启动；设备主人完成邮箱登录与系统授权。安装、登录、同步、离线、推送和覆盖升级尚未验收，不将下表改为通过。
+- 已安装：版本 `0.4.0` 构建号 3（基础包）→ 构建号 4（含 Firebase 配置），EAS 构建 ID 分别为 `a8fede2e-1809-4ac0-a319-73b95d5c9413`、`16e80300-f11a-48eb-b325-c834cb04065f`，均基于源码 `2e719c1`。构建号 4 包名、启动、覆盖升级和前台进程核验通过。
+- 测试执行：维护者通过本机 ADB 完成安装、版本、启动与同签名覆盖升级；`POST_NOTIFICATIONS` 已授予。点“注册设备推送”时出现 `SERVICE_NOT_AVAILABLE`，尚未取得 FCM/Expo token，因此登录后服务端登记、后台送达、点击深链和回执仍待设备主人复测。
+
+### 已完成的基础真机证据（2026-10-21）
+
+| 检查项 | 结果 | 证据 |
+| --- | --- | --- |
+| 构建号 3 首次安装 | 通过 | ADB `install -r` 返回成功；构建元数据见 `android-preview/baseline/android-preview.json` |
+| 构建号 4 同签名覆盖升级 | 通过 | [覆盖升级截图](../../test-results/android-device-after-upgrade.png) |
+| 构建号 4 冷启动与前台进程 | 通过 | `asia.zhixian.app/.MainActivity` resumed，无 `FATAL EXCEPTION` |
+| Android 13+ 通知权限 | 通过 | [通知权限截图](../../test-results/android-push-permission-allowed.png)，ADB appops 为 `allow` |
+| FCM token 获取 | 未通过 | [服务不可用截图](../../test-results/android-push-register-bottom.png)，显示 `SERVICE_NOT_AVAILABLE` |
 
 | 场景 | Android 手机 | iPhone | iPad |
 | --- | --- | --- | --- |
