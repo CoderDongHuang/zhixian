@@ -4,9 +4,9 @@ import { resetFixtures, login } from "./helpers";
 test("shared navigation and narrow-screen workspace remain usable", async ({ page, request }) => {
   await resetFixtures(request);
   await login(page);
-  for (const width of [360, 768, 1440]) {
+  for (const width of [360, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ["/", "/research", "/learning", "/trends", "/onboarding", "/account"]) {
+    for (const path of ["/", "/research", "/learning", "/trends", "/onboarding", "/account", "/install", "/settings"]) {
       await page.goto(path);
       await expect(page.locator("main h1").first()).toBeVisible();
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -17,7 +17,7 @@ test("shared navigation and narrow-screen workspace remain usable", async ({ pag
       ["发现", ["发现首页", "行业简报", "搜索"]],
       ["研究", ["研究工作台", "实体档案", "关系浏览"]],
       ["阅读", ["收藏", "阅读历史", "关键词提醒"]],
-      ["设置", ["阅读偏好", "隐私政策"]],
+      ["设置", ["阅读偏好", "应用设置", "隐私政策"]],
     ] as const) {
       const summary = navigation.locator("summary").filter({ hasText: new RegExp(`^${group}`) });
       await summary.click();

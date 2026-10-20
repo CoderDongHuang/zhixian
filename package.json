@@ -45,6 +45,7 @@
     "test:web-push": "node --experimental-strip-types --test tests/web-push-client.test.ts tests/web-push-storage.test.ts",
     "test:research-execution": "node --experimental-strip-types --test tests/research-execution.test.ts",
     "test:e2e": "playwright test",
+    "test:install": "playwright test --config playwright.install.config.ts",
     "test:performance": "node tests/performance.mjs",
     "test:push": "node --test tests/push-delivery.test.mjs",
     "test:receipts": "node --test tests/expo-receipts.test.mjs",

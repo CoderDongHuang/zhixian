@@ -107,7 +107,6 @@ input[type="time"] { padding: 9px 10px; border: 1px solid #cdd3da; border-radius
 .loading-bar { height: 3px; width: 100%; overflow: hidden; background: #dfe3e8; position: relative; }
 .loading-bar::after { content: ""; display: block; width: 32%; height: 100%; background: #176b4d; animation: loading-slide 1.1s ease-in-out infinite; }
 @keyframes loading-slide { from { transform: translateX(-110%); } to { transform: translateX(330%); } }
-.pwa-tools { position: fixed; right: 16px; bottom: 16px; z-index: 20; padding: 9px 12px; font-size: 13px; box-shadow: 0 4px 16px rgb(16 24 40 / 18%); }
 .mobile-tools { display: flex; align-items: center; gap: 8px; }
 .mobile-tools small { color: #667085; }
 .learning-shell { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 80px; }
