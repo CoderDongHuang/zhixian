@@ -21,6 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: read
     env:
@@ -40,9 +41,36 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - uses: actions/setup-java@v4
+        if: inputs.platform == 'android' && inputs.profile == 'preview'
+        with:
+          distribution: temurin
+          java-version: '17'
       - name: Validate release readiness
         run: npm run release:check
       - run: npm run typecheck --workspace mobile-app
       - run: npm test --workspace mobile-app
-      - run: npx eas-cli@latest build --platform "$BUILD_PLATFORM" --profile "$BUILD_PROFILE" --non-interactive --no-wait
+      - name: Build other distribution formats
+        if: inputs.platform != 'android' || inputs.profile != 'preview'
+        run: npx eas-cli@25.2.0 build --platform "$BUILD_PLATFORM" --profile "$BUILD_PROFILE" --non-interactive --no-wait
         working-directory: mobile-app
+      - name: Build and wait for the signed Android preview APK
+        if: inputs.platform == 'android' && inputs.profile == 'preview'
+        working-directory: mobile-app
+        run: npx eas-cli@25.2.0 build --platform android --profile preview --non-interactive --wait --json > ../eas-android-build.json
+      - name: Download and verify APK, collect actual package metadata
+        if: inputs.platform == 'android' && inputs.profile == 'preview'
+        shell: bash
+        run: |
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          AAPT="$tools/aapt" APKSIGNER="$tools/apksigner" node scripts/android-preview-artifact.mjs eas-android-build.json android-preview
+      - uses: actions/upload-artifact@v4
+        if: inputs.platform == 'android' && inputs.profile == 'preview'
+        with:
+          name: android-preview-${{ github.sha }}
+          path: android-preview/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Record Android delivery status
+        if: inputs.platform == 'android' && inputs.profile == 'preview'
+        run: echo 'Signed preview APK and SHA-256 collected. Device acceptance remains pending; no public download has been published.' >> "$GITHUB_STEP_SUMMARY"

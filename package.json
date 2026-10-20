@@ -6,8 +6,12 @@
   ],
   "version": "0.4.0-rc.1",
   "overrides": {
-    "@expo/plist": { "@xmldom/xmldom": "0.8.15" },
-    "@expo/xcpretty": { "js-yaml": "4.3.2" },
+    "@expo/plist": {
+      "@xmldom/xmldom": "0.8.15"
+    },
+    "@expo/xcpretty": {
+      "js-yaml": "4.3.2"
+    },
     "expo": "54.0.37",
     "expo-constants": "18.0.14",
     "expo-file-system": "19.0.24",
@@ -102,7 +106,7 @@
     "mobile:assets": "node scripts/build-mobile-assets.mjs",
     "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
     "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
-    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs",
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/mobile-config.test.mjs tests/android-preview-artifact.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs",
     "test:free-ai": "node --test tests/free-quota.test.mjs && node --experimental-strip-types --test tests/raw-feed.test.ts",
     "pipeline:local": "node scripts/run-local-pipeline.mjs"
   },

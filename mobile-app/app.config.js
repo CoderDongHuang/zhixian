@@ -1,5 +1,5 @@
 module.exports = ({ config }) => {
-  const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+  const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || config.extra?.eas?.projectId;
   const sentryOrg = process.env.SENTRY_ORG;
   const sentryProject = process.env.SENTRY_PROJECT;
   const plugins = (config.plugins || []).filter((plugin) => plugin !== "@sentry/react-native/expo");
