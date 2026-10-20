@@ -195,3 +195,22 @@ test("cache refresh clears only Zhixian resources and reloads", async ({ page })
   expect(await page.evaluate(() => sessionStorage.getItem("cache-actions"))).toBe("zhixian-old,zhixian-worker,");
   expect(await page.evaluate(() => sessionStorage.getItem("preserved-preference"))).toBe("keep");
 });
+
+test("real service worker reinstallation preserves unrelated caches", async ({ page }) => {
+  await ready(page, "/settings");
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    await caches.open("zhixian-legacy-install-test");
+    await caches.open("unrelated-install-test");
+    localStorage.setItem("installation-preserved-setting", "keep");
+  });
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "刷新网页缓存", exact: true }).click()]);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.active?.state)).toBe("activated");
+  const state = await page.evaluate(async () => ({
+    legacy: await caches.has("zhixian-legacy-install-test"),
+    other: await caches.has("unrelated-install-test"),
+    preference: localStorage.getItem("installation-preserved-setting"),
+  }));
+  expect(state).toEqual({ legacy: false, other: true, preference: "keep" });
+});
