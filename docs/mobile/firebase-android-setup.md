@@ -1,10 +1,17 @@
 # 知线 Android 推送：首次创建 Firebase
 
-更新日期：2026-10-21。状态：**项目与 Android 应用已创建，FCM v1 已启用；配置文件接入和推送验收未完成**。
+更新日期：2026-10-21。状态：**Firebase 与 EAS FCM v1 配置已完成；含配置的 APK 已提交构建，真机推送验收未完成**。
 
 已在 Edge 核验 Firebase 项目 `zhixian-574db`、项目编号 `504207312127`、Android 包名 `asia.zhixian.app` 和应用 ID `1:504207312127:android:3e7869fe96de03d32d38ca`。当前为 Spark 免费方案，不需要重复创建项目或应用。
 
-USB 调试已连接 Xiaomi 15 Pro（Android 16），ADB 状态为 `device`；手机尚未安装知线。客户端配置下载尚未取得本机文件，服务账号私钥停留在生成确认页，未生成或上传。以下步骤保留作后续维护参考。
+USB 调试已连接 Xiaomi 15 Pro（Android 16），ADB 状态为 `device`；手机尚未安装知线。已核验用户提供目录中的客户端配置与服务账号文件属于同一项目，并完成以下接入；文件正文与私钥不记录在文档或 Git 中。
+
+- [x] 客户端 `google-services.json` 已上传到现有 `wubug/zhixian` 项目的 preview 环境，文件变量名 `GOOGLE_SERVICES_JSON`，可见性 secret。
+- [x] 服务账号私钥经用户明确授权生成并上传。EAS CLI 已确认 `Google Service Account Key assigned to asia.zhixian.app for FCM V1`；未配置为 Play Store 提交凭据，未打入客户端。
+- [x] 已提交含 Firebase 客户端配置的原生 preview 构建：版本 `0.4.0` / 构建号 `4`，[EAS 构建 16e80300](https://expo.dev/accounts/wubug/projects/zhixian/builds/16e80300-f11a-48eb-b325-c834cb04065f)，源码 `2e719c1`。提交成功不等于 APK 构建完成。
+- [ ] 下载实际 APK，核验配置、包名、签名与 SHA-256，USB 安装并验证通知注册、后台接收、点击跳转和回执。当前尚不能标注推送通过。
+
+以下步骤保留作后续维护参考，不需要重复创建项目、应用或私钥。
 
 Firebase 用于 Android 的 FCM 推送。当前采用 Expo Push Service；无需为了此步骤接入 Analytics、Firestore 或更换现有登录系统。
 

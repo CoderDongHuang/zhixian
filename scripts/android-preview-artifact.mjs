@@ -37,7 +37,12 @@ async function collect() {
   await fs.writeFile(apkPath, bytes);
   const badging = execFileSync(process.env.AAPT, ["dump", "badging", apkPath], { encoding: "utf8" });
   // A nonzero signature verification result stops collection; never infer signing from ZIP contents.
-  const certificates = execFileSync(process.env.APKSIGNER, ["verify", "--verbose", "--print-certs", apkPath], { encoding: "utf8" });
+  // Node cannot execFile a Windows batch launcher. Invoke the SDK's same signer
+  // JAR directly with Java, keeping file paths as arguments instead of shell text.
+  const windowsLauncher = process.platform === "win32" && /\.(bat|cmd)$/i.test(process.env.APKSIGNER);
+  const signer = windowsLauncher ? (process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, "bin", "java.exe") : "java.exe") : process.env.APKSIGNER;
+  const signerArgs = windowsLauncher ? ["-jar", path.join(path.dirname(process.env.APKSIGNER), "lib", "apksigner.jar")] : [];
+  const certificates = execFileSync(signer, [...signerArgs, "verify", "--verbose", "--print-certs", apkPath], { encoding: "utf8" });
   const metadata = {
     ...apkMetadata(badging, certificates),
     buildId: build.id, sourceCommit: build.gitCommit,
