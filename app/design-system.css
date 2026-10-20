@@ -86,6 +86,17 @@ button:hover:not(:disabled) { filter: brightness(.94); }
 .avatar-setting-controls > .account-avatar { width: 80px; height: 80px; font-size: 30px; }
 .setting-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .avatar-file-input { position: absolute; width: 1px !important; height: 1px; opacity: 0; pointer-events: none; }
+.avatar-crop-dialog { width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 24px 80px #0003; }
+.avatar-crop-dialog::backdrop { background: #101b16a6; }
+.avatar-crop-viewport { position: relative; width: min(280px, 100%); aspect-ratio: 1; margin: 20px auto; overflow: hidden; background: #e7ece9; }
+.avatar-crop-viewport canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.avatar-crop-viewport canvas:active { cursor: grabbing; }
+.avatar-crop-mask { position: absolute; inset: 0; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 80px #101b1670; pointer-events: none; }
+.account-setting-card .avatar-crop-zoom { display: flex; align-items: center; gap: 12px; }
+.account-setting-card .avatar-crop-zoom input { flex: 1; width: 0; padding: 0; border: 0; accent-color: var(--accent); }
+.avatar-crop-zoom output { width: 44px; font-size: 13px; text-align: right; }
+.avatar-crop-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.avatar-crop-actions button { padding: 8px 12px; font-size: 14px; }
 .account-setting-card .setting-help, .setting-help { font-size: 12px; color: var(--muted); line-height: 1.7; }
 .account-setting-card .setting-message { padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); font-size: 13px; }
 .account-code .setting-message { margin-top: 8px; }

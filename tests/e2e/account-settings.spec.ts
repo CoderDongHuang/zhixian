@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { randomBytes } from "node:crypto";
 import { login, resetFixtures } from "./helpers";
 
 async function fillCode(page: Page, label: string) {
@@ -22,6 +23,7 @@ test("avatar, password and email settings persist and update the header and logi
     const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#21634b" } }).png().toBuffer();
     const uploaded = page.waitForResponse(response => response.url().endsWith("/api/account/avatar") && response.request().method() === "POST");
     await page.getByLabel("选择头像图片").setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: png });
+    await page.getByRole("dialog", { name: "裁剪头像" }).getByRole("button", { name: "确认并保存" }).click();
     const uploadResponse = await uploaded;
     expect(uploadResponse.ok(), await uploadResponse.text()).toBeTruthy();
     await expect(page.getByRole("status").filter({ hasText: "头像已更新" })).toBeVisible();
@@ -61,6 +63,56 @@ test("avatar, password and email settings persist and update the header and logi
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/favicon.png?v=zhi-1");
     await expect(page.locator(".site-brand img")).toHaveAttribute("src", "/brand-mark.svg");
   } finally { await other.close(); }
+});
+
+test("large originals are cropped locally; cancel, wheel, drag and save work", async ({ page, request }) => {
+  await resetFixtures(request);
+  await login(page);
+  await page.goto("/account");
+  const pixels = randomBytes(2200 * 1400 * 3);
+  const png = await sharp(pixels, { raw: { width: 2200, height: 1400, channels: 3 } }).composite([{ input: await sharp({ create: { width: 1000, height: 1000, channels: 3, background: "#f01010" } }).png().toBuffer(), left: 600, top: 200 }]).png().toBuffer();
+  expect(png.length).toBeGreaterThan(2 * 1024 * 1024);
+  let uploads = 0;
+  page.on("request", incoming => { if (incoming.url().endsWith("/api/account/avatar") && incoming.method() === "POST") uploads++; });
+  const choose = () => page.getByLabel("选择头像图片").setInputFiles({ name: "large.png", mimeType: "image/png", buffer: png });
+  await choose();
+  const crop = page.getByRole("dialog", { name: "裁剪头像" });
+  await expect(crop.getByRole("button", { name: "确认并保存" })).toBeEnabled();
+  expect(uploads).toBe(0);
+  await crop.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(crop).toHaveCount(0);
+  expect(uploads).toBe(0);
+  await choose();
+  await expect(crop.getByRole("button", { name: "确认并保存" })).toBeEnabled();
+  const surface = crop.getByLabel("头像裁剪区域", { exact: false });
+  await surface.hover();
+  await page.mouse.wheel(0, -140);
+  await expect.poll(async () => Number(await crop.getByRole("slider", { name: "头像缩放" }).inputValue())).toBeGreaterThan(1);
+  await crop.getByRole("button", { name: "重置", exact: true }).click();
+  await expect(crop.getByRole("slider", { name: "头像缩放" })).toHaveValue("1");
+  await crop.getByRole("slider", { name: "头像缩放" }).fill("2.5");
+  // The output must reflect dragging, rather than silently uploading the original.
+  const before = await surface.evaluate(element => (element as HTMLCanvasElement).toDataURL());
+  const box = (await surface.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 25, box.y + box.height / 2 + 15, { steps: 5 });
+  await page.mouse.up();
+  // Move farther toward the noisy edge so the canvas pixels also change.
+  await surface.focus();
+  for (let index = 0; index < 20; index++) await surface.press("ArrowRight");
+  await expect.poll(() => surface.evaluate(element => (element as HTMLCanvasElement).toDataURL())).not.toBe(before);
+  const saved = page.waitForResponse(response => response.url().endsWith("/api/account/avatar") && response.request().method() === "POST");
+  await crop.getByRole("button", { name: "确认并保存" }).click();
+  const response = await saved;
+  expect(response.ok()).toBeTruthy();
+  expect(response.request().headers()["content-type"]).toBe("image/webp");
+  const sent = response.request().postDataBuffer()!;
+  expect(sent.length).toBeLessThan(2 * 1024 * 1024);
+  expect(await sharp(sent).metadata()).toMatchObject({ width: 512, height: 512, format: "webp" });
+  await expect(crop).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "头像已更新" })).toBeVisible();
+  expect(uploads).toBe(1);
 });
 
 test("account endpoints reject unauthenticated access, CSRF, wrong-purpose codes and unsafe uploads", async ({ page, request }) => {

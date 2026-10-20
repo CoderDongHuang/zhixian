@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AccountAvatar } from "@/app/account-avatar";
+import { AvatarCropper } from "./avatar-cropper";
 
 async function accountRequest(path: string, body: Record<string, unknown>) {
   const response = await fetch(`/api/account/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(25_000) });
@@ -38,6 +39,7 @@ export function AccountSettings({ userId, email, hasPassword }: { userId: string
   const upload = useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState("");
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [currentCode, setCurrentCode] = useState("");
   const [newCode, setNewCode] = useState("");
@@ -50,7 +52,7 @@ export function AccountSettings({ userId, email, hasPassword }: { userId: string
   const [passwordMessage, setPasswordMessage] = useState("");
 
   async function saveAvatar(file?: File) {
-    if (file && (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024)) { setAvatarMessage("请选择不超过 2 MB 的 JPG、PNG 或 WebP 图片。"); return; }
+    if (file && (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 2 * 1024 * 1024)) { const message = "裁剪后的头像不能超过 2 MB，格式需为 JPG、PNG 或 WebP。"; setAvatarMessage(message); return message; }
     setAvatarBusy(true); setAvatarMessage("");
     try {
       const response = await fetch("/api/account/avatar", { method: file ? "POST" : "DELETE", headers: file ? { "Content-Type": file.type } : undefined, body: file, signal: AbortSignal.timeout(25_000) });
@@ -58,7 +60,8 @@ export function AccountSettings({ userId, email, hasPassword }: { userId: string
       if (!response.ok) throw new Error(result.error || "头像保存失败");
       window.dispatchEvent(new Event("account-avatar-updated"));
       setAvatarMessage(file ? "头像已更新。" : "已恢复默认头像。");
-    } catch (error) { setAvatarMessage(error instanceof Error ? error.message : "头像保存失败，请重试"); }
+      return null;
+    } catch (error) { const message = error instanceof Error ? error.message : "头像保存失败，请重试"; setAvatarMessage(message); return message; }
     finally { setAvatarBusy(false); if (upload.current) upload.current.value = ""; }
   }
 
@@ -91,8 +94,9 @@ export function AccountSettings({ userId, email, hasPassword }: { userId: string
   return <section className="account-settings" aria-label="账号设置">
     <div className="account-setting-card avatar-setting">
       <div><p className="eyebrow">个人资料</p><h2>头像</h2><p>让你的账号更有辨识度。</p></div>
-      <div className="avatar-setting-controls"><AccountAvatar userId={userId} email={email} /><div><div className="setting-actions"><button type="button" onClick={() => upload.current?.click()} disabled={avatarBusy}>{avatarBusy ? "保存中…" : "上传头像"}</button><button type="button" className="secondary" disabled={avatarBusy} onClick={() => saveAvatar()}>恢复默认</button></div><p className="setting-help">JPG、PNG 或 WebP，最大 2 MB；将自动裁剪为正方形。</p><input ref={upload} type="file" accept="image/jpeg,image/png,image/webp" aria-label="选择头像图片" className="avatar-file-input" onChange={event => { const file = event.target.files?.[0]; if (file) void saveAvatar(file); }} /></div></div>
+      <div className="avatar-setting-controls"><AccountAvatar userId={userId} email={email} /><div><div className="setting-actions"><button type="button" onClick={() => upload.current?.click()} disabled={avatarBusy}>{avatarBusy ? "保存中…" : "上传头像"}</button><button type="button" className="secondary" disabled={avatarBusy} onClick={() => saveAvatar()}>恢复默认</button></div><p className="setting-help">选择 JPG、PNG 或 WebP，先裁剪再保存；裁剪后的图片最大 2 MB。</p><input ref={upload} type="file" accept="image/jpeg,image/png,image/webp" aria-label="选择头像图片" className="avatar-file-input" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; setAvatarMessage(""); if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { setAvatarMessage("请选择 JPG、PNG 或 WebP 图片。"); return; } setCropFile(file); }} /></div></div>
       {avatarMessage && <p className="setting-message" role="status">{avatarMessage}</p>}
+      {cropFile && <AvatarCropper file={cropFile} onCancel={() => setCropFile(null)} onSave={async file => { const error = await saveAvatar(file); if (error) throw new Error(error); setCropFile(null); }} />}
     </div>
     <div className="account-settings-grid">
       <form className="account-setting-card" onSubmit={saveEmail} aria-label="更换邮箱">
