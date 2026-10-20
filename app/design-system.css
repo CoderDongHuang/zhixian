@@ -191,6 +191,12 @@ button:hover:not(:disabled) { filter: brightness(.94); }
   .options label { flex: 1 1 140px; }
 }
 .install-shell { width: min(1120px, calc(100% - 48px)); margin: auto; padding: 76px 0 28px; }
+.android-download { max-width: 780px; margin: 28px 0; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.android-download dl { display: grid; grid-template-columns: minmax(100px, .4fr) minmax(0, 1fr); gap: 10px 20px; font-size: 14px; margin: 24px 0; }
+.android-download dt { color: var(--muted); }
+.android-download dd { margin: 0; }
+.android-download code { overflow-wrap: anywhere; font-size: 12px; }
+.android-download li { margin-bottom: 10px; }
 .install-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 64px; align-items: center; padding-bottom: 72px; }
 .install-intro h1 { font-size: clamp(36px, 4vw, 54px); line-height: 1.28; margin: 0 0 24px; letter-spacing: -.04em; }
 .install-lead { color: var(--muted); font-size: 16px; line-height: 1.9; margin: 0 0 28px; }
@@ -289,4 +295,7 @@ a.install-button:hover { color: #fff; background: #12563e; }
   .install-faq summary { font-size: 14px; }
   .install-footer { padding-top: 28px; }
 }
+.android-install-qr { margin: 24px 0; }
+.android-install-qr img { display: block; }
+.android-install-qr figcaption { margin-top: 8px; color: var(--muted); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; } }

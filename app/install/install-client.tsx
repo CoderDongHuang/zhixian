@@ -6,6 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { useInstallation } from "../pwa-registration";
 import { detectPlatform, platforms, type PlatformId } from "./platforms";
 import { PlatformIcon } from "./platform-icon";
+import releaseData from "./android-release.json";
+import { getAndroidRelease } from "../../lib/android-release";
+
+const androidRelease = getAndroidRelease(releaseData);
 
 export function InstallClient() {
   const installation = useInstallation();
@@ -48,7 +52,7 @@ export function InstallClient() {
             if (installation.available && detected && detected !== "ios" && !embedded) void installation.install();
             else showGuide(detected);
           }}>{installation.busy ? "正在打开安装窗口…" : installation.available && detected && detected !== "ios" && !embedded ? "安装网页版" : "查看安装方法"}<span aria-hidden="true">{installation.available ? "↓" : "→"}</span></button>}
-        <small>原生客户端将分平台陆续提供</small>
+        {detected === "android" && androidRelease ? <Link className="install-text-link" href="/install/android">下载 Android 测试版 ↓</Link> : <small>原生客户端将分平台陆续提供</small>}
       </aside>
     </section>
 
@@ -61,7 +65,7 @@ export function InstallClient() {
             <div className="install-platform-top"><span className="install-platform-icon"><PlatformIcon platform={platform.id} /></span>{detected === platform.id && <span className="install-device-tag">当前设备</span>}</div>
             <h4>{platform.name}</h4><p>{platform.subtitle}</p>
             <button className="install-platform-action" type="button" aria-pressed={selected === platform.id} aria-controls="install-guide" onClick={() => showGuide(platform.id)}>查看{platform.name}安装方法 <span aria-hidden="true">→</span></button>
-            <small>{platform.native.status === "planned" ? "桌面客户端规划中" : "原生客户端待发布"}</small>
+            {platform.id === "android" && androidRelease ? <Link className="install-platform-action" href="/install/android">下载 Android 测试版 <span aria-hidden="true">↓</span></Link> : <small>{platform.native.status === "planned" ? "桌面客户端规划中" : "原生客户端待发布"}</small>}
           </article>)}
         </div>
       </div>)}
@@ -74,7 +78,7 @@ export function InstallClient() {
         {current ? <>
           <p className="install-browser-label">{current.browser}</p>
           <ol className="install-steps">{current.steps.map((step, index) => <li key={step}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><p>{step}</p></li>)}</ol>
-          <p className="install-guide-note">{current.note}</p>
+          <p className="install-guide-note">{current.id === "android" && androidRelease ? <>也可下载<Link href="/install/android">Android 原生测试版</Link>，功能和升级方式见下载页。</> : current.note}</p>
           {!installation.installed && <div className="install-guide-actions">{(canPrompt || installation.busy) && <button type="button" className="install-button" disabled={installation.busy} onClick={() => void installation.install()}>{installation.busy ? "正在打开安装窗口…" : "安装网页版"}</button>}<Link href="/">继续使用网页版 ↗</Link></div>}
           <details className="install-uninstall"><summary>如何卸载 {current.name} 上的知线？</summary><p>{current.uninstall}</p></details>
         </> : <p className="install-guide-placeholder">从上方卡片或设备列表选择设备，即可查看对应的安装步骤。</p>}
@@ -83,11 +87,11 @@ export function InstallClient() {
     </section>
 
     <section className="install-faq" aria-labelledby="faq-title"><div className="install-section-heading"><div><p className="eyebrow">你可能想了解</p><h2 id="faq-title">关于安装</h2></div></div>
-      <details><summary>现在可以下载哪些版本？<span aria-hidden="true">＋</span></summary><p>目前提供网页版应用的安装方式，覆盖支持的电脑、手机和平板浏览器。Android 与苹果原生客户端尚未发布，独立电脑客户端仍在规划中；真实安装包就绪后，会在本页开放对应入口。</p></details>
+      <details><summary>现在可以下载哪些版本？<span aria-hidden="true">＋</span></summary><p>{androidRelease ? <>目前提供<Link href="/install/android">Android 测试版 APK</Link>及网页版安装方法。苹果原生客户端尚未发布，独立电脑客户端仍在规划中。</> : "目前提供网页版应用的安装方式，覆盖支持的电脑、手机和平板浏览器。Android 与苹果原生客户端尚未发布，独立电脑客户端仍在规划中；真实安装包就绪后，会在本页开放对应入口。"}</p></details>
       <details><summary>网页版应用和原生客户端有什么区别？<span aria-hidden="true">＋</span></summary><p>网页版应用通过浏览器安装，可从设备入口独立打开，主要功能随网站更新。原生客户端使用系统安装包或应用商店分发，各端的后台、离线和系统能力以实际发布内容为准。部分浏览器只能添加普通网页快捷方式。</p></details>
       <details><summary>换一台设备，收藏和学习记录还在吗？<span aria-hidden="true">＋</span></summary><p>登录同一账号后，已支持的收藏、阅读与学习数据按现有同步规则同步。本地离线缓存、系统权限和部分设备设置需要在各设备分别管理。</p></details>
       <details><summary>为什么看不到直接安装的按钮？<span aria-hidden="true">＋</span></summary><p>浏览器可能不支持直接安装、尚未提供安装提示，或你正在应用窗口中使用。iPhone/iPad 请使用 Safari 的分享菜单添加到主屏幕。其他设备可按上方指南操作、更新浏览器，或继续使用网页版。</p></details>
-      <details><summary>安装后如何更新和清理缓存？<span aria-hidden="true">＋</span></summary><p>网页版随站点更新，缓存可能影响更新生效时间。联网时可到<Link href="/settings">应用设置</Link>刷新本机网页缓存。原生客户端发布后会提供相应的升级说明。各平台的卸载方法见上方安装指南。</p></details>
+      <details><summary>安装后如何更新和清理缓存？<span aria-hidden="true">＋</span></summary><p>网页版随站点更新，缓存可能影响更新生效时间。联网时可到<Link href="/settings">应用设置</Link>刷新本机网页缓存。{androidRelease ? <>Android 测试版请查看<Link href="/install/android">下载页的覆盖升级说明</Link>。</> : "原生客户端发布后会提供相应的升级说明。"}各平台的卸载方法见上方安装指南。</p></details>
     </section>
     <footer className="install-footer"><Image src="/brand-mark.svg" alt="" width={24} height={24} /><span>知线 · AI 行业研究助手</span><Link href="/privacy">隐私政策 ↗</Link></footer>
   </main>;

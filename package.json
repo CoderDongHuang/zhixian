@@ -106,7 +106,7 @@
     "mobile:assets": "node scripts/build-mobile-assets.mjs",
     "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
     "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
-    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/mobile-config.test.mjs tests/android-preview-artifact.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs",
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/mobile-config.test.mjs tests/android-preview-artifact.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs && node --experimental-strip-types --test tests/android-release.test.ts",
     "test:free-ai": "node --test tests/free-quota.test.mjs && node --experimental-strip-types --test tests/raw-feed.test.ts",
     "pipeline:local": "node scripts/run-local-pipeline.mjs"
   },

@@ -2,7 +2,7 @@
   "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
   "build": {
     "development": { "developmentClient": true, "distribution": "internal" },
-    "preview": { "distribution": "internal", "channel": "preview", "autoIncrement": true, "env": { "EXPO_PUBLIC_API_URL": "https://zhixian.asia" }, "android": { "buildType": "apk" } },
+    "preview": { "distribution": "internal", "environment": "preview", "channel": "preview", "autoIncrement": true, "env": { "EXPO_PUBLIC_API_URL": "https://zhixian.asia" }, "android": { "buildType": "apk" } },
     "preview-simulator": { "extends": "preview", "ios": { "simulator": true } },
     "production": { "autoIncrement": true, "channel": "production", "android": { "buildType": "app-bundle" } }
   },
