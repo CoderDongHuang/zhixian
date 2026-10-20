@@ -12,7 +12,8 @@ const navigation = [
   { label: "研究", links: [["/research", "研究工作台"], ["/entities", "实体档案"], ["/relations", "关系浏览"]] },
   { label: "学习", href: "/learning" },
   { label: "阅读", links: [["/saved", "收藏"], ["/history", "阅读历史"], ["/keywords", "关键词提醒"]] },
-  { label: "设置", links: [["/onboarding", "阅读偏好"], ["/privacy", "隐私政策"]] },
+  { label: "设置", links: [["/onboarding", "阅读偏好"], ["/settings", "应用设置"], ["/privacy", "隐私政策"]] },
+  { label: "安装知线", href: "/install" },
 ] as const;
 
 export function SiteHeader({ user }: { user: { id: string; email: string | null } | null }) {

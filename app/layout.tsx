@@ -18,5 +18,5 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
-  return <html lang="zh-CN"><body><SiteHeader user={user ? { id: user.id, email: user.email } : null} /><div id="page-content" tabIndex={-1}>{children}</div><PwaRegistration /></body></html>;
+  return <html lang="zh-CN"><body><PwaRegistration><SiteHeader user={user ? { id: user.id, email: user.email } : null} /><div id="page-content" tabIndex={-1}>{children}</div></PwaRegistration></body></html>;
 }
