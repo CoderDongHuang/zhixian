@@ -102,12 +102,25 @@ test("large originals are cropped locally; cancel, wheel, drag and save work", a
   await surface.focus();
   for (let index = 0; index < 20; index++) await surface.press("ArrowRight");
   await expect.poll(() => surface.evaluate(element => (element as HTMLCanvasElement).toDataURL())).not.toBe(before);
+  // Chromium does not expose Blob-backed fetch bodies through request.postDataBuffer().
+  // Observe the actual upload Blob before forwarding the unchanged request.
+  await page.evaluate(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      if (args[0] === "/api/account/avatar" && args[1]?.body instanceof Blob) {
+        Object.assign(window, { avatarUploadBytes: Array.from(new Uint8Array(await args[1].body.arrayBuffer())) });
+      }
+      return originalFetch(...args);
+    };
+  });
   const saved = page.waitForResponse(response => response.url().endsWith("/api/account/avatar") && response.request().method() === "POST");
   await crop.getByRole("button", { name: "确认并保存" }).click();
   const response = await saved;
   expect(response.ok()).toBeTruthy();
   expect(response.request().headers()["content-type"]).toBe("image/webp");
-  const sent = response.request().postDataBuffer()!;
+  const captured = await page.evaluate(() => (window as Window & { avatarUploadBytes?: number[] }).avatarUploadBytes);
+  expect(captured).toBeDefined();
+  const sent = Buffer.from(captured!);
   expect(sent.length).toBeLessThan(2 * 1024 * 1024);
   expect(await sharp(sent).metadata()).toMatchObject({ width: 512, height: 512, format: "webp" });
   await expect(crop).toHaveCount(0);
