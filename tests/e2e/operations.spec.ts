@@ -26,8 +26,17 @@ test("operations endpoint is protected and homepage exposes current content fres
     await page.goto("/");
     const freshness = page.getByTestId("content-freshness");
     await expect(freshness).toBeVisible();
-    await expect(freshness).toContainText("采集已暂停");
+    await expect(freshness).toContainText("最近采集成功：暂无");
+    await expect(freshness).toContainText("分析最新发布：");
     await expect(freshness.locator("time")).toHaveAttribute("datetime", published[0].analyzedAt.toISOString());
+    // Cloud workflows can be paused while the local collector is still active.
+    const fetchedAt = new Date(published[0].analyzedAt.getTime() - 3600_000);
+    await db.source.update({ where: { id: "e2e-source" }, data: { type: "GITHUB_API", lastFetchedAt: fetchedAt } });
+    await page.reload();
+    await expect(freshness).not.toContainText("采集已暂停");
+    await expect(freshness.locator("time")).toHaveCount(2);
+    await expect(freshness.locator("time").nth(0)).toHaveAttribute("datetime", fetchedAt.toISOString());
+    await expect(freshness.locator("time").nth(1)).toHaveAttribute("datetime", published[0].analyzedAt.toISOString());
     expect(await freshness.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
     await page.screenshot({ path: info.outputPath("operations-freshness.png"), fullPage: true });
   } finally { await db.$disconnect(); }
