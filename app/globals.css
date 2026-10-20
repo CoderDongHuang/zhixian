@@ -37,6 +37,13 @@ button.danger-button { background: #b42318; }
 .topic-tabs a { color: #667085; text-decoration: none; }
 .topic-tabs a.active { color: #176b4d; font-weight: 700; }
 .feed-list { display: grid; }
+.raw-feed-header { margin-top: 24px; }
+.raw-feed-header h2 { margin-bottom: 8px; }
+.raw-feed-header p { color: #667085; font-size: 14px; line-height: 1.6; }
+.raw-feed-card h3 { font-size: 18px; line-height: 1.5; overflow-wrap: anywhere; }
+.raw-feed-card h3 a { text-decoration: none; }
+.content-status { color: #80551b; background: #fff4df; padding: 2px 8px; border-radius: 5px; }
+.content-status.verified { color: #176b4d; background: #eaf6ef; }
 .feed-card { padding: 26px 0; border-bottom: 1px solid #dfe3e8; }
 .feed-card h2 { font-size: 21px; line-height: 1.45; }
 .feed-card h2 a { text-decoration: none; }

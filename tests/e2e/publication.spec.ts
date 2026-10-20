@@ -9,6 +9,21 @@ test.beforeAll(async () => { await new Promise<void>((resolve) => mock.listen(31
 test.beforeEach(async ({ request }) => { await resetFixtures(request); });
 test.afterAll(async () => { await new Promise<void>((resolve, reject) => mock.close((error) => error ? reject(error) : resolve())); await db.$disconnect(); });
 
+test("raw public source links appear before analysis without exposing pending analysis", async ({ page }) => {
+  await db.source.update({ where: { id: "e2e-source" }, data: { type: "GITHUB_API", lastFetchedAt: new Date() } });
+  const document = await db.rawDocument.update({ where: { id: "e2e-doc-ai" }, data: { title: "Raw public repository awaiting analysis", topic: null, processingStatus: "PENDING", fetchedAt: new Date() } });
+  await db.analysis.updateMany({ where: { eventId: "e2e-event-ai" }, data: { status: "PENDING_REVIEW", summary: "Pending analysis must stay hidden" } });
+  for (const path of ["/", "/?topic=GitHub%20%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE"]) {
+    await page.goto(path);
+    const raw = page.getByRole("region", { name: "最新采集", exact: true });
+    await expect(raw.getByRole("link", { name: document.title, exact: true })).toHaveAttribute("href", document.url);
+    await expect(raw.getByRole("link", { name: document.title, exact: true })).toHaveAttribute("target", "_blank");
+    await expect(page.getByText("Pending analysis must stay hidden", { exact: true })).toHaveCount(0);
+    await expect(page.locator("a[href='/events/e2e-event-ai']")).toHaveCount(0);
+    await expect(page.getByTestId("content-freshness")).toContainText("最近采集成功");
+  }
+});
+
 test("latest pending/rejected/withdrawn version hides all live surfaces without deleting personal records", async ({ page }) => {
   await login(page);
   await page.request.post("/api/feed/e2e-feed-ai/bookmark", { data: { bookmarked: true } });

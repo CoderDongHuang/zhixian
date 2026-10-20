@@ -3,12 +3,13 @@ import { bestTitleMatch, cleanContent, classifyTopic, createClusterKey, detectLa
 import { finishJob } from "./job-policy.mjs";
 import { translateToChinese } from "./translate.mjs";
 import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
+import { freeQuotaSourceTypes, isFreeQuotaStop } from "../lib/free-quota-policy.mjs";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ transactionOptions: { maxWait: 15000, timeout: 60000 } });
 const startedAt = new Date();
 const batchSize = Number(process.env.PROCESS_BATCH_SIZE ?? 50);
 const replay = await replayTarget(prisma, "content-process");
-const documents = await prisma.rawDocument.findMany({ where: replay ? { id: replay.resourceId, materialRevision: Number(replay.revision), processingStatus: { in: ["PENDING", "WAITING_TRANSLATION", "FAILED"] } } : { processingStatus: { in: [ProcessingStatus.PENDING, ProcessingStatus.WAITING_TRANSLATION, ProcessingStatus.FAILED] } }, orderBy: { fetchedAt: "asc" }, take: batchSize });
+const documents = await prisma.rawDocument.findMany({ where: { ...(replay ? { id: replay.resourceId, materialRevision: Number(replay.revision), processingStatus: { in: ["PENDING", "WAITING_TRANSLATION", "FAILED"] } } : { processingStatus: { in: [ProcessingStatus.PENDING, ProcessingStatus.WAITING_TRANSLATION, ProcessingStatus.FAILED] } }), ...(process.env.LOCAL_FREE_AI_ENABLED === "true" ? { source: { type: { in: freeQuotaSourceTypes } } } : {}) }, orderBy: { fetchedAt: process.env.PROCESS_NEWEST_FIRST === "true" ? "desc" : "asc" }, take: batchSize });
 let processed = 0, waiting = 0, failed = 0, superseded = 0;
 requireReplaySelection(replay, documents);
 
@@ -43,6 +44,7 @@ for (const document of documents) {
     if (!saved) { superseded++; return false; }
     if (processingStatus === ProcessingStatus.PROCESSED) processed++;
     else waiting++;
+    console.log(JSON.stringify({ documentId: document.id, status: processingStatus }));
     return processingStatus === ProcessingStatus.WAITING_TRANSLATION ? "WAITING" : true;
     } catch (error) {
       if (error.message !== "TASK_LEASE_LOST") await prisma.$transaction(async (tx) => {
@@ -55,6 +57,7 @@ for (const document of documents) {
   } catch (error) {
     failed++;
     console.error(`${document.id}: ${error.message}`);
+    if (isFreeQuotaStop(error)) { process.exitCode = 1; break; }
   }
 }
 

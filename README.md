@@ -4,7 +4,7 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 
 最新可用网站：[zhixian.asia](https://zhixian.asia)。2026-10-12 已完成三端界面与故障恢复、应用 public schema 备份和实际恢复、生产 20 项 migration/checksum 核验；线上首页缺列异常已消失，公开页面及匿名导航已实测。472 历史分析按新鲜度规则失效，采集继续暂停，首页可能无新内容。完整生产业务、真实服务及原生/微信真机仍待验收，当前状态以 [路线图](docs/roadmap.md) 为准，详见 [三端记录](docs/三端界面重构与验收-2026-10-12.md) 与 [恢复记录](docs/production-recovery-2026-10-12.md)。
 
-> **自动化状态（2026-10-20）：GitHub 云端定时任务仍暂停，本机免费采集已启用。** Windows 任务每天 08:15 / 20:15 采集原始材料，首次完整实跑 5 个来源均成功；依赖本机开机、登录与联网，见 [本机采集说明](docs/local-free-collection.md)。翻译、AI 分析和通知不在本机免费任务范围内。云端内容流水线、摘要投递、生产监控、趋势和 Expo 推送回执仅保留人工触发。八月 Actions 曾因付款/预算被拒绝启动，十月完整 quality gate 已实际运行成功；当前账户剩余额度仍未核验。恢复收费内容流程前须完成 [AI 预算与费率配置](docs/ai-budget-and-reconciliation.md)。个人中心缺表故障已修复，见 [恢复记录](docs/account-recovery-2026-10-20.md)。最新问题与发行边界见 [10 月复核](docs/项目复核与个人版建设建议-2026-10-09.md)。
+> **自动化状态（2026-10-20）：GitHub 云端定时任务仍暂停，本机免费采集已启用。** Windows 任务每天 08:15 / 20:15 采集原始材料，首次完整实跑 5 个来源均成功；依赖本机开机、登录与联网，见 [本机采集说明](docs/local-free-collection.md)。本机已接入通义限时免费额度的翻译、分析与独立核验（用完即停），通知暂不启用。云端内容流水线、摘要投递、生产监控、趋势和 Expo 推送回执仅保留人工触发。八月 Actions 曾因付款/预算被拒绝启动，十月完整 quality gate 已实际运行成功；当前账户剩余额度仍未核验。恢复收费内容流程前须完成 [AI 预算与费率配置](docs/ai-budget-and-reconciliation.md)。个人中心缺表故障已修复，见 [恢复记录](docs/account-recovery-2026-10-20.md)。最新问题与发行边界见 [10 月复核](docs/项目复核与个人版建设建议-2026-10-09.md)。
 
 ## 技术栈
 
@@ -27,7 +27,7 @@ AI 行业研究平台，持续追踪 AI 行业、大模型和 GitHub 开源项�
 
 ## 核心任务
 
-- Windows 本机免费定时采集：见 [安装与运行说明](docs/local-free-collection.md)，不消耗 Actions 分钟，仅入库原始材料。
+- Windows 本机免费定时采集：见 [安装与运行说明](docs/local-free-collection.md)，不消耗 Actions 分钟，支持原始资讯展示及可选的通义免费额度分析。
 
 - `npm run sources:ingest`：采集公开来源
 - `npm run content:process`：清洗、分类、聚类和翻译

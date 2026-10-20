@@ -1,5 +1,6 @@
 import { currentPipelineTask } from "../lib/pipeline-tasks.mjs";
 import { trackedAiFetch } from "../lib/ai-telemetry.mjs";
+import { modelHttpError, providerOptions } from "../lib/free-quota-policy.mjs";
 
 function stripCodeFence(value = "") {
   return value.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
@@ -12,11 +13,12 @@ export async function callModel({ key, url, model, system, user, maxTokens = 160
   const response = await trackedAiFetch(database, task?.name ?? scope, model)(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.1, max_tokens: maxTokens }),
+    body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.1, max_tokens: maxTokens, ...providerOptions(url, true) }),
+    redirect: "error",
     signal: AbortSignal.timeout(90000),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result?.error?.message ?? `Model returned HTTP ${response.status}`);
+  if (!response.ok) throw modelHttpError(response.status, result);
   const content = result.choices?.[0]?.message?.content;
   if (!content) throw new Error("Model returned empty content");
   try { return JSON.parse(stripCodeFence(content)); }

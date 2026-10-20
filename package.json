@@ -58,7 +58,7 @@
     "test:research-agent": "node --experimental-strip-types --test tests/research-agent.test.ts",
     "audit:prod": "node scripts/check-dependency-audit.mjs",
     "test:entities": "node --experimental-strip-types --test tests/entities.test.ts",
-    "test:unit": "npm run test:push && npm run test:receipts && npm run test:learning && npm run test:wechat && npm run test:entities && npm run test:miniprogram && npm run test:p1-policies && npm run test:p2-policies && npm run test:research && npm run test:trends && npm run test:research-agent && npm run test:release && npm run test:auth-claims && npm run test:material-freshness && npm run test:review-versions && npm run test:research-execution && npm run test:web-push && npm run test:research-share && npm run test:auth-security && npm run test:operations && npm run test:ai-budget && npm run test:ai-reconciliation",
+    "test:unit": "npm run test:push && npm run test:receipts && npm run test:learning && npm run test:wechat && npm run test:entities && npm run test:miniprogram && npm run test:p1-policies && npm run test:p2-policies && npm run test:research && npm run test:trends && npm run test:research-agent && npm run test:release && npm run test:auth-claims && npm run test:material-freshness && npm run test:review-versions && npm run test:research-execution && npm run test:web-push && npm run test:research-share && npm run test:auth-security && npm run test:operations && npm run test:ai-budget && npm run test:ai-reconciliation && npm run test:free-ai",
     "monitor:production": "node scripts/monitor-production.mjs",
     "configuration:check": "node scripts/check-configuration.mjs",
     "test:configuration": "node --test tests/configuration-preflight.test.mjs",
@@ -101,7 +101,9 @@
     "mobile:assets": "node scripts/build-mobile-assets.mjs",
     "release:check": "node scripts/check-mobile-release-readiness.mjs --build",
     "release:check:submit": "node scripts/check-mobile-release-readiness.mjs --submit",
-    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs"
+    "test:release": "node --test tests/mobile-release-readiness.test.mjs tests/metro-assets.test.mjs tests/dependency-audit.test.mjs tests/security-backports.test.mjs tests/forge-security.test.mjs",
+    "test:free-ai": "node --test tests/free-quota.test.mjs && node --experimental-strip-types --test tests/raw-feed.test.ts",
+    "pipeline:local": "node scripts/run-local-pipeline.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.12.0",

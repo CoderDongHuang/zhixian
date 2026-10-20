@@ -1,3 +1,4 @@
+import { classifyTopic } from "./content-utils.mjs";
 import { PrismaClient, DocumentLanguage } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { finishJob } from "./job-policy.mjs";
@@ -77,8 +78,8 @@ for (const config of sources.filter((item) => !replay || replay.resourceId === i
       const existing = await tx.rawDocument.findUnique({ where: { url }, select: { id: true, contentHash: true } });
       const changed = !existing || existing.contentHash !== contentHash;
       const document = existing
-        ? await tx.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, language: config.language, publishedAt, fetchedAt: new Date(), contentHash, ...(changed ? { processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: null } : {}) } })
-        : await tx.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: config.language, publishedAt, contentHash } });
+        ? await tx.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, language: config.language, publishedAt, fetchedAt: new Date(), contentHash, ...(changed ? { processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: classifyTopic(title, content) } : {}) } })
+        : await tx.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: config.language, publishedAt, contentHash, topic: classifyTopic(title, content) } });
       if (!existing) counts.created++;
       else if (changed) counts.updated++;
       else counts.unchanged++;

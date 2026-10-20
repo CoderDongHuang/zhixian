@@ -1,3 +1,4 @@
+import { classifyTopic } from "./content-utils.mjs";
 import { PrismaClient, DocumentLanguage } from "@prisma/client";
 import { finishJob } from "./job-policy.mjs";
 import { runTask, assertTaskLease, replayTarget, requireReplaySelection } from "../lib/pipeline-tasks.mjs";
@@ -30,8 +31,8 @@ async function save(store, source, item) {
   const existing = await store.rawDocument.findUnique({ where: { url }, select: { id: true, contentHash: true } });
   if (existing?.contentHash === contentHash) return "unchanged";
   const document = existing
-    ? await store.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, publishedAt: item.publishedAt ? new Date(item.publishedAt) : null, fetchedAt: new Date(), contentHash, processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: null } })
-    : await store.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: DocumentLanguage.EN, publishedAt: item.publishedAt ? new Date(item.publishedAt) : null, contentHash } });
+    ? await store.rawDocument.update({ where: { id: existing.id }, data: { sourceId: source.id, title, content, publishedAt: item.publishedAt ? new Date(item.publishedAt) : null, fetchedAt: new Date(), contentHash, processingStatus: "PENDING", processedAt: null, processingError: null, cleanedContent: null, translatedContent: null, topic: classifyTopic(title, content) } })
+    : await store.rawDocument.create({ data: { sourceId: source.id, url, title, content, language: DocumentLanguage.EN, publishedAt: item.publishedAt ? new Date(item.publishedAt) : null, contentHash, topic: classifyTopic(title, content) } });
   await store.sourceSnapshot.create({ data: { sourceId: source.id, documentId: document.id, url, title, content, contentHash, publishedAt: item.publishedAt ? new Date(item.publishedAt) : null } });
   return existing ? "updated" : "created";
 }
