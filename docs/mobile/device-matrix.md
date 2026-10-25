@@ -54,4 +54,13 @@
 
 Google Play 服务 `26.18.33` 已启用；用户确认 App 已登录并调整网络，浏览器可打开 Firebase，App 推送注册仍 `SERVICE_NOT_AVAILABLE`。推送送达与深链仍未通过。构建号 4 字体 115% 经结束进程再启动保留，覆盖升级后仍需核验。没有收藏/离线样本时不能声称对应数据保留。
 
-iPhone/iPad：用户确认没有 Apple Developer 会员和苹果真机，所有真机单元格仍待验收；10/25 iOS JS/资源导出成功仅是打包检查。
+iPhone/iPad：用户确认没有 Apple Developer 会员和苹果真机，所有真机单元格仍待验收；10/25 iOS JS/资源导出及模拟器原生云构建 `8336d730` 成功，Windows 未运行模拟器，详见 [苹果发行准备](ios-phase-three-readiness.md)。
+
+### 构建号 6 补充（2026-10-25，维护者 / ADB）
+
+设备仍为上述 Xiaomi 15 Pro / Android 16。EAS `950f3f05-ee1b-43b3-bfbf-7a1e22c6986b`，源码 `23d488f`，0.4.0 / 6，签名一致，覆盖安装成功。
+
+- 异常网络冷启动、断网冷启动基础界面通过，不再持续加载；[断网截图](evidence/android-v6-offline-start.png)。
+- 4→5→6 后 [字体 115% 保留](evidence/android-v6-settings-retained.png)，已恢复原 100%。仅证明该设置保留，收藏及离线正文尚无样本。
+- 已拒绝通知后的注册错误提示通过，测试后恢复通知允许；[拒绝截图](evidence/android-v6-permission-denied.png)。注册中按钮禁用及失败后恢复通过。
+- [FCM 注册仍失败](evidence/android-v6-push-unavailable.png)，业务网络恢复与推送闭环未通过；上方完整业务矩阵不据此勾选完成。详情见 [阶段二验收](android-phase-two-acceptance.md)。
