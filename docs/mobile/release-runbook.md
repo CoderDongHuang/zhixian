@@ -11,6 +11,26 @@
 
 运行 GitHub Actions 的 `Mobile release build`，选择 `preview`。Android 生成 APK；iOS 生成内部测试包。iOS 模拟器使用 `preview-simulator`。
 
+Android preview 的 Firebase 配置见 [接入指南](firebase-android-setup.md)：客户端文件使用 EAS preview 环境的 `GOOGLE_SERVICES_JSON` secret 文件变量，推送服务账号在 EAS Credentials 绑定 FCM v1，两者不能互换。preview 为缺少 Sentry 上传配置的内测环境设置 `SENTRY_DISABLE_AUTO_UPLOAD=true`；production 仍须补齐 Sentry 上传凭据。
+
+### Android APK 收集与开放下载
+
+1. 等待 EAS 状态为 `FINISHED`，保存 `eas build:view <build-id> --json` 的结果为 `eas-android-build.json`。排队、CLI 提交成功或 GitHub 调度成功均不代表已有 APK。
+2. 使用 SDK 的 `aapt`、`apksigner` 收集真实元数据。Linux CI 已在 workflow 内设置这两个路径；Windows PowerShell 示例：
+
+   ```powershell
+   $env:AAPT = 'D:\java\sdk\build-tools\35.0.0\aapt.exe'
+   $env:APKSIGNER = 'D:\java\sdk\build-tools\35.0.0\apksigner.bat'
+   $env:JAVA_HOME = 'D:\java\javajdk\jdk-17'
+   node scripts/android-preview-artifact.mjs eas-android-build.json android-preview
+   ```
+
+   路径按实际 SDK/JDK 修改。Windows 收集器直接用 Java 调用 SDK 的 `lib/apksigner.jar`，不经 shell 拼接文件名；签名验证失败会停止，不能跳过。
+3. 核对输出的 APK、`android-preview.json` 和 `SHA256SUMS`。确认包名 `asia.zhixian.app`，比较新版与旧版签名证书摘要，核对版本号、最低 API 和支持架构。元数据中的 `deviceAcceptance` 初始为 `pending`，文件下载或签名通过不能自动改为真机通过。
+4. 在已授权的 USB 设备先安装旧版，再以同签名较大 versionCode 的新版覆盖安装，保留应用数据。验证启动、登录、同步、断网恢复、通知授权/拒绝、后台推送与点击跳转，记录实际设备和构建 ID；登录和验证码由设备主人操作。
+5. 真机验收通过后，将 APK、元数据和校验文件发布为同仓库有固定 tag 的 GitHub prerelease。核验公开下载与校验值后，才将 `app/install/android-release.json` 更新为 `status: testing`、`deviceAcceptance: passed`，并填写实际发行元数据。下载链接必须是该 tag 下的 `zhixian-android-preview.apk`。
+6. EAS 临时下载地址和 30 天 CI artifact 仅用于构建交接，不作为长期公开下载入口。故障时将清单回退到 `status: pending`、`release: null`，页面保留安装指南；保留旧发行记录用于追溯。
+
 ## OTA 分批发布
 
 先对 `preview` channel 发布并观察 48 小时，再对 `production` 发布。OTA 只能修改与当前 `runtimeVersion` 兼容的 JS/资源，新增原生模块必须重新构建安装包。

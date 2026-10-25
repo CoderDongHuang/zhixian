@@ -1,6 +1,18 @@
 import { test, expect, type Page } from "@playwright/test";
 import { detectPlatform } from "../../app/install/platforms";
 
+test("Android pending download page offers a stable QR destination and web fallback", async ({ page }, testInfo) => {
+  await page.goto("/install/android");
+  await expect(page.getByRole("heading", { name: "测试包准备中" })).toBeVisible();
+  await expect(page.locator('a[href$=".apk"]')).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "手机扫码打开知线 Android 安装页" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("android-pending.png"), fullPage: true });
+  await page.getByRole("link", { name: "查看网页版安装方法" }).click();
+  await expect(page).toHaveURL(/\/install#install-guide$/);
+  await expect(page.getByRole("heading", { name: "选择你的平台" })).toBeVisible();
+});
+
 async function ready(page: Page, path = "/install") {
   await page.goto(path);
   // The detected device confirms hydration and effect registration have finished.

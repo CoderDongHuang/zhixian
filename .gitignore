@@ -13,3 +13,11 @@ playwright-report/
 test-results/
 .local-ai-billing/
 mobile-app/dist-*/
+mobile-app/android/
+mobile-app/ios/
+mobile-app/google-services.json
+mobile-app/credentials.json
+*.keystore
+*.jks
+eas-android-build.json
+android-preview/

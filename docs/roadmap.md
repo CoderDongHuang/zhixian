@@ -1,6 +1,6 @@
 # 知线版本路线图
 
-更新日期：2026-10-20
+更新日期：2026-10-25
 
 本文是版本范围和状态的唯一来源。代码实现、隔离测试、生产验收与发布分别记录，不能相互替代。10 月 9 日修复前审计基线为 `a1c7dbf`。安全回补 `16b30a4`、预算 `ff0fd8c`、专题保存补修 `b41cdd2`、只读对账 `ec5ad16` 均已推送 main 并完成全链路 CI；对账批次 [38121542721](https://github.com/CoderDongHuang/zhixian/actions/runs/38121542721) 中预算 10/10、对账 11/11、skip 0，浏览器 72/72。未执行生产发布。
 
@@ -8,6 +8,8 @@
 
 | 状态 | 版本/阶段 | 范围 | 发布条件 |
 | --- | --- | --- | --- |
+| 阶段二基础链路完成，推送闭环与公开分发待完成 | 安装知线 Android 测试包 | 构建号 6 已签名校验并覆盖安装；修复网络异常时冷启动持续加载，字体设置跨升级保留、通知拒绝提示、注册忙状态与断网启动基础界面通过；移动端 37/37、完整 CI 40155565269 成功；推送仍连接失败 | [阶段二验收及截图](mobile/android-phase-two-acceptance.md)；[Firebase 接入指南](mobile/firebase-android-setup.md)；仍缺实际业务同步、FCM token/送达/点击/回执及固定 prerelease，下载 pending，PR #21 未合并 |
+| 阶段三准备中，未完成 | iPhone/iPad 测试与发行 | iOS JS/资源导出及原生模拟器云构建通过；源码 `23d488f`，EAS `8336d730`（0.4.0/1）；Windows 未运行模拟器，用户无苹果开发者会员或真机 | 见 [苹果发行准备](mobile/ios-phase-three-readiness.md)；仍需会员、iPhone/iPad、签名/APNs、TestFlight 与双设备验收；无真实链接前保留网页版指引 |
 | 阶段一开发及浏览器验收完成，已合并推送 main | 安装知线与多平台下载 | `/install` 固定入口、五平台指南、PWA 安装状态、`/settings` 缓存管理；本机 Edge 桌面/手机视口 32/32 + 真实 SW 重注册 2/2，Lint/双类型检查/构建通过；[完整 CI](https://github.com/CoderDongHuang/zhixian/actions/runs/39433677862) 成功；[PR #20](https://github.com/CoderDongHuang/zhixian/pull/20) 已合并，提交 `026e4e4` | [推进记录](安装知线与多平台下载规划.md)；系统真实安装/卸载待验收，原生包与商店发行仍按阶段二至五推进 |
 | 历史发布基线，本轮未核验线上版本 | V0.3.1 Web/PWA | 信息流、学习中心、报告导出、微信小程序、实体关系、Web Push | 不把历史验收当作本轮线上验收 |
 | 发布候选，原生发行仍阻塞 | V0.4.0 RC | React Native App、移动同步、Expo Push、离线阅读、语音和生物识别；依赖回补/同步代码及 CI 已通过 | EAS/签名、真机与 48 小时稳定性验收；官方安全版本发布后撤销临时回补 |
