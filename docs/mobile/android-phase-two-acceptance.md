@@ -1,6 +1,6 @@
 # Android 阶段二验收记录
 
-日期：2026-10-21  
+日期：2026-10-21；续验：2026-10-25
 项目：知线（`asia.zhixian.app`）  
 设备：Xiaomi 15 Pro（型号 `2410DPN6CC`），Android 16 / API 36，ABI `arm64-v8a`，ADB serial `18fa448`
 
@@ -31,3 +31,11 @@
 ## 发布状态
 
 `app/install/android-release.json` 保持 `status: pending`。EAS 临时 artifact 地址不作为长期下载入口；只有推送闭环、固定 GitHub tag prerelease 和公开下载核验都完成后，才能改为 `testing` 并接入安装页。
+
+## 2026-10-25 续验
+
+- Google Play 服务 `26.18.33` 已启用，USB 正常；用户确认已登录知线并切换网络。浏览器可打开 Firebase 地址，App 再次注册仍失败为 `SERVICE_NOT_AVAILABLE`。ADB 探测先为 8 秒连接超时，网络调整后为 TLS 连接错误；没有成功 token、后台送达或点击证据。
+- 推送注册增加 20 秒超时、注册中禁用、就近状态和登录失效提示；Android/iOS 使用各自的恢复说明。源码提交 `3e0bf10`。移动端 Jest 28/28、TypeScript、发布回归 90/90、项目 Lint 通过；iOS JS/资源导出成功不等于苹果真机通过。
+- 同签名 3→4 安装已通过，但之前的证据不能证明收藏、离线数据或自定义设置被保留。构建号 4 中已将字体设为 115%，结束进程后重新进入仍为 115%；待构建号 5 覆盖安装后继续检查。
+- 新 EAS 构建：`b9ceaa31-00a0-4df1-902c-ee3270548cfb`，版本 `0.4.0`、构建号 5，基于 `3e0bf106ba6f2a670ccaecc6f73078df5408d6b5`。构建完成与安装结果另行记录，不预先标通过。
+- 登录/同步/断网恢复的业务闭环、通知拒绝路径、后台接收、点击与回执、固定 prerelease 及公开下载仍未完成。阶段二仍未完成，草稿 PR 保持未合并。
