@@ -51,7 +51,8 @@ async function refreshSession() {
     const [refreshToken, deviceId] = await Promise.all([getRefreshToken(), getDeviceId()]);
     if (!refreshToken) return false;
     const response = await fetchWithPolicy(`${API_URL}/api/mini/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken, deviceId }) });
-    if (!response.ok) { accessToken = ""; await clearRefreshToken(); return false; }
+    if (response.status === 401 || response.status === 403) { accessToken = ""; await clearRefreshToken(); return false; }
+    if (!response.ok) throw new ApiRequestError("network", "Session refresh is temporarily unavailable");
     const tokens = await response.json() as SessionTokens; accessToken = tokens.accessToken; await setRefreshToken(tokens.refreshToken); return true;
   })().finally(() => { refreshPromise = null; });
   return refreshPromise;

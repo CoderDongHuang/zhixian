@@ -32,7 +32,8 @@
     "metro-transform-worker": "0.83.8",
     "nanoid": "3.3.18",
     "postcss": "8.5.23",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "undici": "6.29.1"
   },
   "scripts": {
     "postinstall": "node scripts/security-backports.mjs && prisma generate",
@@ -115,7 +116,7 @@
     "@types/web-push": "^3.6.4",
     "ajv": "^8.20.0",
     "fast-xml-parser": "^5.10.1",
-    "next": "^15.5.27",
+    "next": "^15.5.28",
     "pg": "^8.22.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -128,7 +129,7 @@
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.7",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.27",
+    "eslint-config-next": "^15.5.28",
     "prisma": "6.12.0",
     "typescript": "^5.0.0"
   }
